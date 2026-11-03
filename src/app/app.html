@@ -1,0 +1,197 @@
+<main class="page-shell">
+  <header class="hero">
+    <div>
+      <p class="eyebrow">PERENCANA ANGGARAN BULANAN</p>
+      <h1>Budget<span>Ku</span></h1>
+      <p class="hero-copy">
+        Atur pendapatan dan kebutuhan bulanan dengan lebih tenang. Semua perubahan dihitung
+        langsung di perangkatmu.
+      </p>
+    </div>
+    <div class="hero-mark" aria-hidden="true">Rp</div>
+  </header>
+
+  <section class="summary-grid" aria-label="Ringkasan anggaran">
+    <article class="summary-card income-card">
+      <div class="card-label"><span class="icon">↗</span> Pendapatan bulan ini</div>
+      <strong>{{ incomeControl.value | currency: 'IDR' : 'symbol' : '1.0-0' }}</strong>
+      <span class="muted">Batas anggaranmu</span>
+    </article>
+    <article class="summary-card expense-card">
+      <div class="card-label"><span class="icon">↘</span> Total pengeluaran</div>
+      <strong>{{ totalExpenses | currency: 'IDR' : 'symbol' : '1.0-0' }}</strong>
+      <span class="muted">Dari semua kategori</span>
+    </article>
+    <article class="summary-card balance-card" [class.negative]="remainingBudget < 0">
+      <div class="card-label"><span class="icon">◈</span> Sisa anggaran</div>
+      <strong>{{ remainingBudget | currency: 'IDR' : 'symbol' : '1.0-0' }}</strong>
+      <span class="muted">{{ budgetStatus }}</span>
+    </article>
+  </section>
+
+  <form class="budget-form" [formGroup]="budgetForm" (ngSubmit)="updateIncome()" novalidate>
+    <section class="panel income-panel">
+      <div class="section-heading">
+        <div>
+          <p class="section-kicker">LANGKAH 01</p>
+          <h2>Tentukan pendapatan</h2>
+          <p>Berapa total pendapatan yang bisa kamu gunakan bulan ini?</p>
+        </div>
+        <span class="step-badge">1</span>
+      </div>
+
+      <label class="field-label" for="income">Pendapatan bulanan</label>
+      <div class="money-input">
+        <span>Rp</span>
+        <input
+          id="income"
+          type="number"
+          min="1"
+          formControlName="income"
+          placeholder="0"
+          (blur)="updateIncome()"
+        />
+      </div>
+      <p class="field-error" *ngIf="showControlError(incomeControl)">
+        Pendapatan wajib lebih besar dari Rp0.
+      </p>
+    </section>
+
+    <section class="panel categories-panel" formArrayName="categories">
+      <div class="section-heading category-heading">
+        <div>
+          <p class="section-kicker">LANGKAH 02</p>
+          <h2>Atur pengeluaran</h2>
+          <p>Kelompokkan kebutuhanmu agar lebih mudah dipantau.</p>
+        </div>
+        <button class="primary-button" type="button" (click)="appendCategory()">
+          <span>＋</span> Tambah kategori
+        </button>
+      </div>
+
+      <div class="limit-note">{{ categories.length }} / {{ maxCategories }} kategori digunakan</div>
+
+      <ng-container *ngIf="hasCategories; else emptyCategories">
+        <div
+          class="category-list"
+          *ngFor="let category of categories.controls; let categoryIndex = index; let first = first; let last = last; trackBy: trackByCategory"
+          [formGroupName]="categoryIndex"
+        >
+          <article class="category-card">
+            <div class="category-topline">
+              <div class="category-number">{{ categoryIndex + 1 | number: '2.0-0' }}</div>
+              <div class="category-name-wrap">
+                <label class="field-label" [for]="'category-' + categoryIndex">Nama kategori</label>
+                <input
+                  class="category-name"
+                  [id]="'category-' + categoryIndex"
+                  type="text"
+                  formControlName="name"
+                  placeholder="Contoh: Kebutuhan Rumah"
+                />
+                <p class="field-error" *ngIf="showControlError(category.controls.name)">
+                  Nama kategori wajib diisi.
+                </p>
+              </div>
+              <div class="category-total">
+                <span>Total kategori</span>
+                <strong>{{ getCategoryTotal(category) | currency: 'IDR' : 'symbol' : '1.0-0' }}</strong>
+              </div>
+              <button
+                class="icon-button danger"
+                type="button"
+                (click)="removeCategory(categoryIndex)"
+                [disabled]="first && last"
+                title="Minimal satu kategori harus tersedia"
+                [attr.aria-label]="'Hapus kategori ' + (categoryIndex + 1)"
+              >
+                ×
+              </button>
+            </div>
+
+            <div class="subitems-header">
+              <span>Rincian pengeluaran</span>
+              <span class="position-hint" *ngIf="first">Kategori pertama</span>
+              <span class="position-hint" *ngIf="last">Kategori terakhir</span>
+            </div>
+
+            <div class="expense-list" formArrayName="expenses">
+              <div
+                class="expense-row"
+                *ngFor="let expense of getExpenses(category).controls; let expenseIndex = index; let expenseFirst = first; let expenseLast = last; trackBy: trackByExpense"
+                [formGroupName]="expenseIndex"
+              >
+                <span class="row-index">{{ expenseIndex + 1 }}</span>
+                <div class="expense-name-field">
+                  <input
+                    type="text"
+                    formControlName="name"
+                    [placeholder]="expenseFirst ? 'Contoh: Belanja mingguan' : 'Nama pengeluaran'"
+                  />
+                  <small class="field-error" *ngIf="showControlError(expense.controls.name)">
+                    Nama item wajib diisi.
+                  </small>
+                </div>
+                <div class="amount-field">
+                  <span>Rp</span>
+                  <input type="number" min="1" formControlName="amount" placeholder="0" />
+                </div>
+                <button
+                  class="remove-row"
+                  type="button"
+                  (click)="removeExpense(categoryIndex, expenseIndex)"
+                  [disabled]="expenseLast && getExpenses(category).length === 1"
+                  [attr.aria-label]="'Hapus item ' + (expenseIndex + 1)"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <button class="add-item-button" type="button" (click)="appendExpense(categoryIndex)">
+              ＋ Tambah item pengeluaran
+            </button>
+          </article>
+        </div>
+      </ng-container>
+
+      <ng-template #emptyCategories>
+        <div class="empty-state">
+          <div class="empty-icon">✦</div>
+          <h3>Belum ada kategori</h3>
+          <p>Mulai dengan menambahkan kategori pengeluaran pertamamu.</p>
+          <button class="primary-button" type="button" (click)="appendCategory()">
+            <span>＋</span> Tambah kategori pertama
+          </button>
+        </div>
+      </ng-template>
+    </section>
+
+    <aside class="status-panel" [class.status-warning]="budgetStatus === 'Mendekati batas'" [class.status-danger]="isOverBudget">
+      <div class="status-icon">{{ isOverBudget ? '!' : '✓' }}</div>
+      <div>
+        <p class="section-kicker">STATUS ANGGARAN</p>
+        <h2>{{ budgetStatus }}</h2>
+        <p *ngIf="isOverBudget">Pengeluaranmu sudah melebihi pendapatan. Kurangi beberapa item.</p>
+        <p *ngIf="!isOverBudget && budgetStatus === 'Mendekati batas'">Sisakan sedikit ruang untuk kebutuhan tak terduga.</p>
+        <p *ngIf="!isOverBudget && budgetStatus === 'Aman'">Kondisi anggaranmu masih terkendali bulan ini.</p>
+      </div>
+    </aside>
+
+    <div class="validation-panel" *ngIf="validationMessages.length > 0" role="alert">
+      <strong>Periksa kembali anggaranmu</strong>
+      <ul>
+        <li *ngFor="let message of validationMessages">{{ message }}</li>
+      </ul>
+    </div>
+
+    <div class="form-actions">
+      <button class="secondary-button" type="button" (click)="resetBudget()">Reset anggaran</button>
+      <button class="primary-button save-button" type="submit">Perbarui ringkasan <span>→</span></button>
+    </div>
+  </form>
+
+  <footer>
+    <span>BudgetKu</span> · Data hanya tersimpan selama halaman ini terbuka
+  </footer>
+</main>

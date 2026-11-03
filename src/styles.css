@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  font-family: 'DM Sans', Arial, sans-serif;
+  color: #18342f;
+  background: #f6faf7;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(218, 241, 227, 0.58), transparent 30%),
+    #f6faf7;
+}
+
+button,
+input {
+  font-family: inherit;
+}
