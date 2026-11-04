@@ -2,8 +2,8 @@
 
 :root {
   font-family: 'DM Sans', Arial, sans-serif;
-  color: #18342f;
-  background: #f4f8f5;
+  color: #243b53;
+  background: #f4f9fd;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -16,10 +16,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  background:
-    radial-gradient(circle at 8% -5%, rgba(205, 236, 218, 0.8), transparent 28%),
-    radial-gradient(circle at 95% 22%, rgba(252, 231, 202, 0.52), transparent 24%),
-    #f4f8f5;
+  background: #f4f9fd;
 }
 
 button,
