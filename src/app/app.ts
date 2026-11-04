@@ -39,6 +39,8 @@ export class BudgetPlannerComponent implements OnDestroy {
   }>;
 
   private readonly formSubscription: Subscription;
+  private readonly trackIds = new WeakMap<object, string>();
+  private nextTrackId = 0;
   private crossItemMessages: string[] = [];
 
   constructor(private readonly formBuilder: NonNullableFormBuilder) {
@@ -204,13 +206,13 @@ export class BudgetPlannerComponent implements OnDestroy {
     return category.controls.name.value.trim() || 'Kategori tanpa nama';
   }
 
-  trackByCategory(index: number, category: CategoryGroup): string {
-    return `${index}-${category.controls.name.value}`;
-  }
+  trackByCategory = (index: number, category: CategoryGroup): string => {
+    return this.getTrackId(category);
+  };
 
-  trackByExpense(index: number, expense: ExpenseGroup): string {
-    return `${index}-${expense.controls.name.value}`;
-  }
+  trackByExpense = (index: number, expense: ExpenseGroup): string => {
+    return this.getTrackId(expense);
+  };
 
   showControlError(control: AbstractControl): boolean {
     return control.invalid && (control.touched || control.dirty);
@@ -305,5 +307,16 @@ export class BudgetPlannerComponent implements OnDestroy {
 
   private isValidCategoryIndex(categoryIndex: number): boolean {
     return categoryIndex >= 0 && categoryIndex < this.categories.length;
+  }
+
+  private getTrackId(control: object): string {
+    const existingId = this.trackIds.get(control);
+    if (existingId) {
+      return existingId;
+    }
+
+    const newId = `budget-row-${this.nextTrackId++}`;
+    this.trackIds.set(control, newId);
+    return newId;
   }
 }

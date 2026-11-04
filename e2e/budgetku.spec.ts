@@ -63,4 +63,15 @@ test.describe('BudgetKu', () => {
     expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport);
     await expect(page.getByRole('button', { name: 'Tambah kategori pertama' })).toBeVisible();
   });
+
+  test('allows typing into the category name field', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Tambah kategori pertama' }).click();
+
+    const categoryInput = page.getByLabel('Nama kategori');
+    await categoryInput.click();
+    await categoryInput.pressSequentially('Kebutuhan Rumah');
+
+    await expect(categoryInput).toHaveValue('Kebutuhan Rumah');
+  });
 });
