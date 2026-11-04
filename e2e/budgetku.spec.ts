@@ -20,8 +20,8 @@ test.describe('BudgetKu', () => {
     await page.getByLabel('Nominal').nth(1).fill('200000');
 
     const summary = page.getByRole('region', { name: 'Ringkasan anggaran' });
-    await expect(summary.getByText(/700[.,]000/)).toBeVisible();
-    await expect(summary.getByText(/4[.,]300[.,]000/)).toBeVisible();
+    await expect(summary.getByText('Rp 700.000')).toBeVisible();
+    await expect(summary.getByText('Rp 4.300.000')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Aman' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Perbarui ringkasan' }).click();

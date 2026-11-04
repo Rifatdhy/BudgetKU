@@ -20,6 +20,10 @@ describe('BudgetPlannerComponent', () => {
     expect(component.categories.length).toBe(0);
   });
 
+  it('formats amounts using Indonesian thousands separators', () => {
+    expect(component.formatRupiah(3_000_000)).toBe('Rp 3.000.000');
+  });
+
   it('calculates nested expenses and removes an item at its index', () => {
     component.incomeControl.setValue(5_000_000);
     component.appendCategory();

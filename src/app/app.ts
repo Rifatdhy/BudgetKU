@@ -88,6 +88,12 @@ export class BudgetPlannerComponent implements OnDestroy {
     return this.incomeControl.valid && this.incomeControl.value > 0;
   }
 
+  formatRupiah(value: number): string {
+    return `Rp ${new Intl.NumberFormat('id-ID', {
+      maximumFractionDigits: 0,
+    }).format(value)}`;
+  }
+
   get isBudgetConfigured(): boolean {
     return this.incomeControl.value > 0;
   }
