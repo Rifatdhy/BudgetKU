@@ -678,3 +678,4 @@ Tujuan minimum adalah aplikasi BudgetKu yang bekerja lengkap pada View–Control
 - **Motion:** hanya transisi hover dan focus digunakan untuk memberi umpan balik interaksi tanpa mengganggu pekerjaan input.
 - **Simbol:** simbol ringkasan hanya berfungsi sebagai penanda visual; teks di sampingnya tetap menjadi sumber informasi utama.
 - **Responsive:** pada layar kecil, ringkasan ditumpuk dan tombol dibuat selebar container agar tetap mudah disentuh.
+- **Apple-inspired:** system font, permukaan putih, abu-abu netral, ruang lega, dan biru tindakan dipakai sebagai referensi kualitas antarmuka, bukan penyalinan layout atau identitas Apple.

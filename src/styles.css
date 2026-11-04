@@ -1,7 +1,7 @@
 :root {
-  font-family: Arial, sans-serif;
-  color: #243b53;
-  background: #f4f9fd;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  color: #1d1d1f;
+  background: #f5f5f7;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -14,7 +14,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  background: #f4f9fd;
+  background: #f5f5f7;
 }
 
 button,
@@ -33,7 +33,7 @@ button:disabled {
 
 button:focus-visible,
 input:focus-visible {
-  outline: 3px solid #2d6f98;
+  outline: 3px solid #0066cc;
   outline-offset: 2px;
 }
 
