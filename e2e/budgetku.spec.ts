@@ -74,4 +74,29 @@ test.describe('BudgetKu', () => {
 
     await expect(categoryInput).toHaveValue('Kebutuhan Rumah');
   });
+
+  test('updates budget progress and toggles category details', async ({ page }) => {
+    await page.goto('/');
+    await page.getByLabel('Pendapatan bulanan').fill('1000000');
+    await page.getByRole('button', { name: 'Tambah kategori pertama' }).click();
+    await page.getByLabel('Nama kategori').fill('Transportasi');
+    await page.getByLabel('Nama pengeluaran').fill('Bensin');
+    await page.getByLabel('Nominal').fill('250000');
+
+    await expect(page.getByText('25% dari pendapatan terpakai')).toBeVisible();
+    const progressWidth = await page.locator('.progress-value').evaluate((element) => {
+      const track = element.parentElement;
+      return track ? (element.getBoundingClientRect().width / track.getBoundingClientRect().width) * 100 : 0;
+    });
+    expect(progressWidth).toBeGreaterThan(0);
+    expect(progressWidth).toBeLessThan(100);
+
+    const closeButton = page.getByRole('button', { name: 'Tutup Transportasi' });
+    await closeButton.click();
+    await expect(page.getByText('Rincian disembunyikan. Tekan Buka untuk melihat item.')).toBeVisible();
+    await expect(page.getByLabel('Nama pengeluaran')).toBeHidden();
+
+    await page.getByRole('button', { name: 'Buka Transportasi' }).click();
+    await expect(page.getByLabel('Nama pengeluaran')).toBeVisible();
+  });
 });

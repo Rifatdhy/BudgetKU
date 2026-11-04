@@ -40,6 +40,7 @@ export class BudgetPlannerComponent implements OnDestroy {
 
   private readonly formSubscription: Subscription;
   private readonly trackIds = new WeakMap<object, string>();
+  private readonly collapsedCategories = new WeakSet<CategoryGroup>();
   private nextTrackId = 0;
   private crossItemMessages: string[] = [];
 
@@ -100,6 +101,26 @@ export class BudgetPlannerComponent implements OnDestroy {
     return this.incomeControl.value > 0;
   }
 
+  get budgetUsagePercent(): number {
+    if (!this.isBudgetConfigured) {
+      return 0;
+    }
+
+    return (this.totalExpenses / this.incomeControl.value) * 100;
+  }
+
+  get budgetProgressWidth(): number {
+    return Math.min(this.budgetUsagePercent, 100);
+  }
+
+  get budgetUsageLabel(): string {
+    if (!this.isBudgetConfigured) {
+      return 'Masukkan pendapatan untuk melihat pemakaian';
+    }
+
+    return `${Math.round(this.budgetUsagePercent)}% dari pendapatan terpakai`;
+  }
+
   updateIncome(): void {
     this.incomeControl.markAsTouched();
     this.runCrossItemValidation();
@@ -132,6 +153,19 @@ export class BudgetPlannerComponent implements OnDestroy {
 
     this.categories.removeAt(categoryIndex);
     this.runCrossItemValidation();
+  }
+
+  toggleCategory(category: CategoryGroup): void {
+    if (this.collapsedCategories.has(category)) {
+      this.collapsedCategories.delete(category);
+      return;
+    }
+
+    this.collapsedCategories.add(category);
+  }
+
+  isCategoryExpanded(category: CategoryGroup): boolean {
+    return !this.collapsedCategories.has(category);
   }
 
   appendExpense(categoryIndex: number): void {
@@ -204,6 +238,14 @@ export class BudgetPlannerComponent implements OnDestroy {
 
   getCategoryName(category: CategoryGroup): string {
     return category.controls.name.value.trim() || 'Kategori tanpa nama';
+  }
+
+  getCategoryUsagePercent(category: CategoryGroup): number {
+    if (!this.isBudgetConfigured) {
+      return 0;
+    }
+
+    return Math.min((this.getCategoryTotal(category) / this.incomeControl.value) * 100, 100);
   }
 
   trackByCategory = (index: number, category: CategoryGroup): string => {

@@ -29,6 +29,19 @@
     </article>
   </section>
 
+  <section class="usage-panel" aria-label="Pemakaian anggaran">
+    <div class="usage-heading">
+      <div>
+        <p class="section-kicker">PEMAKAIAN ANGGARAN</p>
+        <h2>{{ budgetUsageLabel }}</h2>
+      </div>
+      <strong>{{ budgetUsagePercent | number: '1.0-0' }}%</strong>
+    </div>
+    <div class="progress-track" role="progressbar" aria-label="Persentase pemakaian anggaran" [attr.aria-valuenow]="budgetUsagePercent" aria-valuemin="0" aria-valuemax="100">
+      <div class="progress-value" [style.width.%]="budgetProgressWidth"></div>
+    </div>
+  </section>
+
   <form class="budget-form" [formGroup]="budgetForm" (ngSubmit)="submitBudget()" novalidate>
     <section class="panel income-panel">
       <div class="section-heading">
@@ -98,6 +111,15 @@
                 <strong>{{ formatRupiah(getCategoryTotal(category)) }}</strong>
               </div>
               <button
+                class="category-toggle"
+                type="button"
+                (click)="toggleCategory(category)"
+                [attr.aria-expanded]="isCategoryExpanded(category)"
+                [attr.aria-label]="(isCategoryExpanded(category) ? 'Tutup ' : 'Buka ') + getCategoryName(category)"
+              >
+                {{ isCategoryExpanded(category) ? 'Tutup' : 'Buka' }}
+              </button>
+              <button
                 class="icon-button danger"
                 type="button"
                 (click)="removeCategory(categoryIndex)"
@@ -109,66 +131,79 @@
               </button>
             </div>
 
-            <div class="subitems-header">
-              <span>Rincian pengeluaran</span>
-              <span class="position-hint" *ngIf="first">Kategori pertama</span>
-              <span class="position-hint" *ngIf="last">Kategori terakhir</span>
+            <div class="category-progress">
+              <div class="category-progress-track">
+                <div class="category-progress-value" [style.width.%]="getCategoryUsagePercent(category)"></div>
+              </div>
+              <span>{{ getCategoryUsagePercent(category) | number: '1.0-0' }}% dari pendapatan</span>
             </div>
 
-            <div class="expense-list" formArrayName="expenses">
-              <div
-                class="expense-row"
-                *ngFor="let expense of getExpenses(category).controls; let expenseIndex = index; let expenseFirst = first; let expenseLast = last; trackBy: trackByExpense"
-                [formGroupName]="expenseIndex"
-              >
-                <span class="row-index">{{ expenseIndex + 1 }}</span>
-                <div class="expense-name-field">
-                  <label class="expense-label" [for]="'expense-name-' + categoryIndex + '-' + expenseIndex">
-                    Nama pengeluaran
-                  </label>
-                  <input
-                    [id]="'expense-name-' + categoryIndex + '-' + expenseIndex"
-                    type="text"
-                    formControlName="name"
-                    [placeholder]="expenseFirst ? 'Contoh: Belanja mingguan' : 'Nama pengeluaran'"
-                  />
-                  <small class="field-error" *ngIf="showControlError(expense.controls.name)">
-                    Nama item wajib diisi.
-                  </small>
-                </div>
-                <div class="amount-cell">
-                  <label class="expense-label" [for]="'expense-amount-' + categoryIndex + '-' + expenseIndex">
-                    Nominal
-                  </label>
-                  <div class="amount-field">
-                    <span>Rp</span>
+            <ng-container *ngIf="isCategoryExpanded(category); else collapsedCategory">
+              <div class="subitems-header">
+                <span>Rincian pengeluaran</span>
+                <span class="position-hint" *ngIf="first">Kategori pertama</span>
+                <span class="position-hint" *ngIf="last">Kategori terakhir</span>
+              </div>
+
+              <div class="expense-list" formArrayName="expenses">
+                <div
+                  class="expense-row"
+                  *ngFor="let expense of getExpenses(category).controls; let expenseIndex = index; let expenseFirst = first; let expenseLast = last; trackBy: trackByExpense"
+                  [formGroupName]="expenseIndex"
+                >
+                  <span class="row-index">{{ expenseIndex + 1 }}</span>
+                  <div class="expense-name-field">
+                    <label class="expense-label" [for]="'expense-name-' + categoryIndex + '-' + expenseIndex">
+                      Nama pengeluaran
+                    </label>
                     <input
-                      [id]="'expense-amount-' + categoryIndex + '-' + expenseIndex"
-                      type="number"
-                      min="1"
-                      formControlName="amount"
-                      placeholder="0"
+                      [id]="'expense-name-' + categoryIndex + '-' + expenseIndex"
+                      type="text"
+                      formControlName="name"
+                      [placeholder]="expenseFirst ? 'Contoh: Belanja mingguan' : 'Nama pengeluaran'"
                     />
-                    <small class="field-error" *ngIf="showControlError(expense.controls.amount)">
-                      Nominal harus lebih besar dari Rp0.
+                    <small class="field-error" *ngIf="showControlError(expense.controls.name)">
+                      Nama item wajib diisi.
                     </small>
                   </div>
+                  <div class="amount-cell">
+                    <label class="expense-label" [for]="'expense-amount-' + categoryIndex + '-' + expenseIndex">
+                      Nominal
+                    </label>
+                    <div class="amount-field">
+                      <span>Rp</span>
+                      <input
+                        [id]="'expense-amount-' + categoryIndex + '-' + expenseIndex"
+                        type="number"
+                        min="1"
+                        formControlName="amount"
+                        placeholder="0"
+                      />
+                      <small class="field-error" *ngIf="showControlError(expense.controls.amount)">
+                        Nominal harus lebih besar dari Rp0.
+                      </small>
+                    </div>
+                  </div>
+                  <button
+                    class="remove-row"
+                    type="button"
+                    (click)="removeExpense(categoryIndex, expenseIndex)"
+                    [disabled]="expenseLast && getExpenses(category).length === 1"
+                    [attr.aria-label]="'Hapus item ' + (expenseIndex + 1)"
+                  >
+                    ×
+                  </button>
                 </div>
-                <button
-                  class="remove-row"
-                  type="button"
-                  (click)="removeExpense(categoryIndex, expenseIndex)"
-                  [disabled]="expenseLast && getExpenses(category).length === 1"
-                  [attr.aria-label]="'Hapus item ' + (expenseIndex + 1)"
-                >
-                  ×
-                </button>
               </div>
-            </div>
 
-            <button class="add-item-button" type="button" (click)="appendExpense(categoryIndex)">
-              ＋ Tambah item pengeluaran
-            </button>
+              <button class="add-item-button" type="button" (click)="appendExpense(categoryIndex)">
+                ＋ Tambah item pengeluaran
+              </button>
+            </ng-container>
+
+            <ng-template #collapsedCategory>
+              <div class="collapsed-category">Rincian disembunyikan. Tekan Buka untuk melihat item.</div>
+            </ng-template>
           </article>
         </div>
       </ng-container>
