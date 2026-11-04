@@ -31,6 +31,7 @@ type CategoryGroup = FormGroup<{
 export class BudgetPlannerComponent implements OnDestroy {
   readonly maxCategories = 10;
   readonly warningThreshold = 0.8;
+  isUpdatingSummary = false;
 
   readonly budgetForm: FormGroup<{
     income: FormControl<number>;
@@ -71,7 +72,7 @@ export class BudgetPlannerComponent implements OnDestroy {
     return this.calculateRemainingBudget();
   }
 
-  get budgetStatus(): 'Aman' | 'Mendekati batas' | 'Melebihi anggaran' {
+  get budgetStatus(): 'Belum diatur' | 'Aman' | 'Mendekati batas' | 'Melebihi anggaran' {
     return this.getBudgetStatus();
   }
 
@@ -87,9 +88,23 @@ export class BudgetPlannerComponent implements OnDestroy {
     return this.incomeControl.valid && this.incomeControl.value > 0;
   }
 
+  get isBudgetConfigured(): boolean {
+    return this.incomeControl.value > 0;
+  }
+
   updateIncome(): void {
     this.incomeControl.markAsTouched();
     this.runCrossItemValidation();
+  }
+
+  submitBudget(): void {
+    this.budgetForm.markAllAsTouched();
+    this.updateIncome();
+    this.isUpdatingSummary = true;
+
+    window.setTimeout(() => {
+      this.isUpdatingSummary = false;
+    }, 250);
   }
 
   appendCategory(): void {
@@ -152,7 +167,11 @@ export class BudgetPlannerComponent implements OnDestroy {
     return this.incomeControl.value - this.calculateTotalExpenses();
   }
 
-  getBudgetStatus(): 'Aman' | 'Mendekati batas' | 'Melebihi anggaran' {
+  getBudgetStatus(): 'Belum diatur' | 'Aman' | 'Mendekati batas' | 'Melebihi anggaran' {
+    if (!this.isBudgetConfigured) {
+      return 'Belum diatur';
+    }
+
     if (!this.isIncomeValid || this.isOverBudget) {
       return 'Melebihi anggaran';
     }
@@ -164,8 +183,8 @@ export class BudgetPlannerComponent implements OnDestroy {
     return 'Aman';
   }
 
-  getExpenses(category: AbstractControl): FormArray<ExpenseGroup> {
-    return (category as CategoryGroup).controls.expenses;
+  getExpenses(category: CategoryGroup): FormArray<ExpenseGroup> {
+    return category.controls.expenses;
   }
 
   getCategoryTotal(category: CategoryGroup): number {

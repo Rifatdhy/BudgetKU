@@ -1,7 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
-
 :root {
-  font-family: 'DM Sans', Arial, sans-serif;
+  font-family: Arial, sans-serif;
   color: #243b53;
   background: #f4f9fd;
   font-synthesis: none;
@@ -22,4 +20,29 @@ body {
 button,
 input {
   font-family: inherit;
+}
+
+button,
+label {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid #2d6f98;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

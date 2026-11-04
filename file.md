@@ -1,8 +1,8 @@
-# PROJECT UTS FBP — BUDGETKU
+# PROJECT UTS FBP: BUDGETKU
 
 ## Dokumen Proyek Final
 
-Dokumen ini adalah rancangan proyek yang akan diimplementasikan untuk memenuhi ketentuan UTS Framework Based Programming. Proyek yang dipilih adalah **BudgetKu — Aplikasi Perencana Anggaran Bulanan**.
+Dokumen ini adalah rancangan proyek yang akan diimplementasikan untuk memenuhi ketentuan UTS Framework Based Programming. Proyek yang dipilih adalah **BudgetKu: Aplikasi Perencana Anggaran Bulanan**.
 
 Implementasi wajib menggunakan Angular dengan fokus pada **View (HTML Template)** dan **Controller (Component TypeScript)**. Data hanya disimpan di memory menggunakan `FormGroup`, `FormArray`, dan state lokal. Backend API, database, login, dan persistence tidak digunakan.
 
@@ -667,3 +667,14 @@ Proyek dianggap memenuhi ketentuan apabila seluruh kondisi berikut terpenuhi:
 - Tidak menambahkan service atau komponen tambahan jika tidak diperlukan.
 
 Tujuan minimum adalah aplikasi BudgetKu yang bekerja lengkap pada View–Controller. Fitur penyimpanan permanen dapat ditambahkan hanya jika dosen meminta, karena tidak termasuk ketentuan utama PDF.
+
+## 14. Catatan Arah Desain
+
+- **Palet:** putih menjadi permukaan kerja agar form mudah dipindai; biru muda menjadi aksen interaksi agar aplikasi terasa tenang dan relevan dengan perencanaan keuangan.
+- **Tipografi:** Arial dipakai karena tersedia di perangkat pengguna tanpa memblokir rendering font eksternal.
+- **Layout:** ringkasan diletakkan sebelum form karena pengguna perlu melihat kondisi anggaran sebelum mengubah rincian.
+- **Kartu:** border tipis dan shadow ringan memisahkan kelompok data tanpa membuat setiap elemen terasa mengambang.
+- **Ruang:** jarak lebih besar digunakan di antara bagian utama, sedangkan input dalam satu kategori dibuat rapat agar hubungan datanya terlihat.
+- **Motion:** hanya transisi hover dan focus digunakan untuk memberi umpan balik interaksi tanpa mengganggu pekerjaan input.
+- **Simbol:** simbol ringkasan hanya berfungsi sebagai penanda visual; teks di sampingnya tetap menjadi sumber informasi utama.
+- **Responsive:** pada layar kecil, ringkasan ditumpuk dan tombol dibuat selebar container agar tetap mudah disentuh.

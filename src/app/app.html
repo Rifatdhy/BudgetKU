@@ -13,23 +13,23 @@
 
   <section class="summary-grid" aria-label="Ringkasan anggaran">
     <article class="summary-card income-card">
-      <div class="card-label"><span class="icon">↗</span> Pendapatan bulan ini</div>
+      <div class="card-label"><span class="icon" aria-hidden="true">↗</span> Pendapatan bulan ini</div>
       <strong>{{ incomeControl.value | currency: 'IDR' : 'symbol' : '1.0-0' }}</strong>
       <span class="muted">Batas anggaranmu</span>
     </article>
     <article class="summary-card expense-card">
-      <div class="card-label"><span class="icon">↘</span> Total pengeluaran</div>
+      <div class="card-label"><span class="icon" aria-hidden="true">↘</span> Total pengeluaran</div>
       <strong>{{ totalExpenses | currency: 'IDR' : 'symbol' : '1.0-0' }}</strong>
       <span class="muted">Dari semua kategori</span>
     </article>
     <article class="summary-card balance-card" [class.negative]="remainingBudget < 0">
-      <div class="card-label"><span class="icon">◈</span> Sisa anggaran</div>
+      <div class="card-label"><span class="icon" aria-hidden="true">◈</span> Sisa anggaran</div>
       <strong>{{ remainingBudget | currency: 'IDR' : 'symbol' : '1.0-0' }}</strong>
       <span class="muted">{{ budgetStatus }}</span>
     </article>
   </section>
 
-  <form class="budget-form" [formGroup]="budgetForm" (ngSubmit)="updateIncome()" novalidate>
+  <form class="budget-form" [formGroup]="budgetForm" (ngSubmit)="submitBudget()" novalidate>
     <section class="panel income-panel">
       <div class="section-heading">
         <div>
@@ -123,7 +123,11 @@
               >
                 <span class="row-index">{{ expenseIndex + 1 }}</span>
                 <div class="expense-name-field">
+                  <label class="expense-label" [for]="'expense-name-' + categoryIndex + '-' + expenseIndex">
+                    Nama pengeluaran
+                  </label>
                   <input
+                    [id]="'expense-name-' + categoryIndex + '-' + expenseIndex"
                     type="text"
                     formControlName="name"
                     [placeholder]="expenseFirst ? 'Contoh: Belanja mingguan' : 'Nama pengeluaran'"
@@ -132,9 +136,23 @@
                     Nama item wajib diisi.
                   </small>
                 </div>
-                <div class="amount-field">
-                  <span>Rp</span>
-                  <input type="number" min="1" formControlName="amount" placeholder="0" />
+                <div class="amount-cell">
+                  <label class="expense-label" [for]="'expense-amount-' + categoryIndex + '-' + expenseIndex">
+                    Nominal
+                  </label>
+                  <div class="amount-field">
+                    <span>Rp</span>
+                    <input
+                      [id]="'expense-amount-' + categoryIndex + '-' + expenseIndex"
+                      type="number"
+                      min="1"
+                      formControlName="amount"
+                      placeholder="0"
+                    />
+                    <small class="field-error" *ngIf="showControlError(expense.controls.amount)">
+                      Nominal harus lebih besar dari Rp0.
+                    </small>
+                  </div>
                 </div>
                 <button
                   class="remove-row"
@@ -167,18 +185,24 @@
       </ng-template>
     </section>
 
-    <aside class="status-panel" [class.status-warning]="budgetStatus === 'Mendekati batas'" [class.status-danger]="isOverBudget">
-      <div class="status-icon">{{ isOverBudget ? '!' : '✓' }}</div>
+    <aside
+      class="status-panel"
+      [class.status-warning]="budgetStatus === 'Mendekati batas'"
+      [class.status-danger]="isOverBudget"
+      aria-live="polite"
+    >
+      <div class="status-icon" aria-hidden="true">{{ isOverBudget ? '!' : '✓' }}</div>
       <div>
         <p class="section-kicker">STATUS ANGGARAN</p>
         <h2>{{ budgetStatus }}</h2>
         <p *ngIf="isOverBudget">Pengeluaranmu sudah melebihi pendapatan. Kurangi beberapa item.</p>
         <p *ngIf="!isOverBudget && budgetStatus === 'Mendekati batas'">Sisakan sedikit ruang untuk kebutuhan tak terduga.</p>
-        <p *ngIf="!isOverBudget && budgetStatus === 'Aman'">Kondisi anggaranmu masih terkendali bulan ini.</p>
+        <p *ngIf="!isBudgetConfigured">Masukkan pendapatan untuk mulai menyusun anggaran.</p>
+        <p *ngIf="!isOverBudget && isBudgetConfigured && budgetStatus === 'Aman'">Kondisi anggaranmu masih terkendali bulan ini.</p>
       </div>
     </aside>
 
-    <div class="validation-panel" *ngIf="validationMessages.length > 0" role="alert">
+    <div class="validation-panel" *ngIf="validationMessages.length > 0" role="alert" aria-live="assertive">
       <strong>Periksa kembali anggaranmu</strong>
       <ul>
         <li *ngFor="let message of validationMessages">{{ message }}</li>
@@ -187,7 +211,9 @@
 
     <div class="form-actions">
       <button class="secondary-button" type="button" (click)="resetBudget()">Reset anggaran</button>
-      <button class="primary-button save-button" type="submit">Perbarui ringkasan <span>→</span></button>
+      <button class="primary-button save-button" type="submit" [disabled]="isUpdatingSummary">
+        {{ isUpdatingSummary ? 'Menghitung...' : 'Perbarui ringkasan' }}
+      </button>
     </div>
   </form>
 
