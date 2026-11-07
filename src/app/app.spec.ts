@@ -57,4 +57,50 @@ describe('BudgetPlannerComponent', () => {
       'Kategori "transportasi" tidak boleh duplikat.',
     );
   });
+
+  it('keeps equal expenses and income within budget', () => {
+    component.incomeControl.setValue(500_000);
+    component.appendCategory();
+    component.categories.at(0).controls.name.setValue('Rumah');
+    component.getExpenses(component.categories.at(0)).at(0).patchValue({
+      name: 'Listrik',
+      amount: 500_000,
+    });
+
+    expect(component.isOverBudget).toBeFalse();
+    expect(component.validationMessages).not.toContain(
+      'Total pengeluaran tidak boleh melebihi pendapatan bulanan.',
+    );
+  });
+
+  it('marks the budget form invalid when expenses exceed income', () => {
+    component.incomeControl.setValue(100_000);
+    component.appendCategory();
+    component.categories.at(0).controls.name.setValue('Rumah');
+    component.getExpenses(component.categories.at(0)).at(0).patchValue({
+      name: 'Belanja',
+      amount: 150_000,
+    });
+
+    expect(component.budgetForm.invalid).toBeTrue();
+    expect(component.budgetForm.errors?.['overBudget']).toBeTrue();
+  });
+
+  it('does not enter loading state when submitting an invalid budget', () => {
+    component.submitBudget();
+
+    expect(component.isUpdatingSummary).toBeFalse();
+    expect(component.incomeControl.touched).toBeTrue();
+  });
+
+  it('treats category names with surrounding spaces and case differences as duplicates', () => {
+    component.appendCategory();
+    component.appendCategory();
+    component.categories.at(0).controls.name.setValue('Transportasi');
+    component.categories.at(1).controls.name.setValue('  transportasi  ');
+
+    expect(component.validationMessages).toContain(
+      'Kategori "  transportasi  " tidak boleh duplikat.',
+    );
+  });
 });

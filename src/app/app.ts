@@ -8,6 +8,7 @@ import {
   NonNullableFormBuilder,
   ReactiveFormsModule,
   ValidationErrors,
+  ValidatorFn,
   Validators,
 } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -43,11 +44,17 @@ export class BudgetPlannerComponent implements OnDestroy {
   private readonly collapsedCategories = new WeakSet<CategoryGroup>();
   private nextTrackId = 0;
   private crossItemMessages: string[] = [];
+  private confirmedIncome = 0;
+  private confirmedExpenses = 0;
 
   constructor(private readonly formBuilder: NonNullableFormBuilder) {
     this.budgetForm = this.formBuilder.group({
       income: this.formBuilder.control(0, [Validators.required, Validators.min(1)]),
-      categories: this.formBuilder.array<CategoryGroup>([]),
+      categories: this.formBuilder.array<CategoryGroup>([], {
+        validators: [this.categoryNamesValidator()],
+      }),
+    }, {
+      validators: [this.budgetLimitValidator()],
     });
 
     this.formSubscription = this.budgetForm.valueChanges.subscribe(() => {
@@ -71,8 +78,16 @@ export class BudgetPlannerComponent implements OnDestroy {
     return this.calculateTotalExpenses();
   }
 
+  get confirmedIncomeAmount(): number {
+    return this.confirmedIncome;
+  }
+
+  get confirmedExpenseAmount(): number {
+    return this.confirmedExpenses;
+  }
+
   get remainingBudget(): number {
-    return this.calculateRemainingBudget();
+    return this.confirmedIncome - this.confirmedExpenses;
   }
 
   get budgetStatus(): 'Belum diatur' | 'Aman' | 'Mendekati batas' | 'Melebihi anggaran' {
@@ -84,7 +99,7 @@ export class BudgetPlannerComponent implements OnDestroy {
   }
 
   get isOverBudget(): boolean {
-    return this.totalExpenses > this.incomeControl.value;
+    return this.confirmedExpenses > this.confirmedIncome;
   }
 
   get isIncomeValid(): boolean {
@@ -98,7 +113,7 @@ export class BudgetPlannerComponent implements OnDestroy {
   }
 
   get isBudgetConfigured(): boolean {
-    return this.incomeControl.value > 0;
+    return this.confirmedIncome > 0;
   }
 
   get budgetUsagePercent(): number {
@@ -106,7 +121,7 @@ export class BudgetPlannerComponent implements OnDestroy {
       return 0;
     }
 
-    return (this.totalExpenses / this.incomeControl.value) * 100;
+    return (this.confirmedExpenses / this.confirmedIncome) * 100;
   }
 
   get budgetProgressWidth(): number {
@@ -126,9 +141,48 @@ export class BudgetPlannerComponent implements OnDestroy {
     this.runCrossItemValidation();
   }
 
+  selectInitialZero(event: FocusEvent): void {
+    const input = event.target;
+
+    if (input instanceof HTMLInputElement && input.value === '0') {
+      input.select();
+    }
+  }
+
+  formatAmountInput(event: Event, control: FormControl<number>): void {
+    const input = event.target;
+
+    if (!(input instanceof HTMLInputElement)) {
+      return;
+    }
+
+    const digits = input.value.replace(/\D/g, '');
+
+    if (digits.length === 0) {
+      control.setValue(0, { emitEvent: false });
+      input.value = '';
+      this.runCrossItemValidation();
+      return;
+    }
+
+    const amount = Number(digits);
+    control.setValue(amount, { emitEvent: false });
+    input.value = new Intl.NumberFormat('id-ID', {
+      maximumFractionDigits: 0,
+    }).format(amount);
+    this.runCrossItemValidation();
+  }
+
   submitBudget(): void {
     this.budgetForm.markAllAsTouched();
     this.updateIncome();
+
+    if (this.budgetForm.invalid || this.totalExpenses > this.incomeControl.value) {
+      return;
+    }
+
+    this.confirmedIncome = this.incomeControl.value;
+    this.confirmedExpenses = this.totalExpenses;
     this.isUpdatingSummary = true;
 
     window.setTimeout(() => {
@@ -214,11 +268,11 @@ export class BudgetPlannerComponent implements OnDestroy {
       return 'Belum diatur';
     }
 
-    if (!this.isIncomeValid || this.isOverBudget) {
+    if (this.confirmedIncome <= 0 || this.isOverBudget) {
       return 'Melebihi anggaran';
     }
 
-    if (this.totalExpenses >= this.incomeControl.value * this.warningThreshold) {
+    if (this.confirmedExpenses >= this.confirmedIncome * this.warningThreshold) {
       return 'Mendekati batas';
     }
 
@@ -264,6 +318,8 @@ export class BudgetPlannerComponent implements OnDestroy {
     this.budgetForm.reset({ income: 0, categories: [] });
     this.categories.clear();
     this.crossItemMessages = [];
+    this.confirmedIncome = 0;
+    this.confirmedExpenses = 0;
   }
 
   ngOnDestroy(): void {
@@ -327,6 +383,57 @@ export class BudgetPlannerComponent implements OnDestroy {
     }
 
     this.crossItemMessages = [...new Set(messages)];
+  }
+
+  private categoryNamesValidator(): ValidatorFn {
+    return (control): ValidationErrors | null => {
+      const names = new Set<string>();
+      const categoryValues = control.value;
+      if (!Array.isArray(categoryValues)) {
+        return null;
+      }
+
+      const hasDuplicate = categoryValues.some((category) => {
+        const normalizedName = String(category?.name ?? '').trim().toLowerCase();
+        if (!normalizedName) {
+          return false;
+        }
+
+        if (names.has(normalizedName)) {
+          return true;
+        }
+
+        names.add(normalizedName);
+        return false;
+      });
+
+      return hasDuplicate ? { duplicateCategoryName: true } : null;
+    };
+  }
+
+  private budgetLimitValidator(): ValidatorFn {
+    return (control): ValidationErrors | null => {
+      const income = Number(control.get('income')?.value ?? 0);
+      const categoryValues = control.get('categories')?.value;
+      if (!Array.isArray(categoryValues) || income <= 0) {
+        return null;
+      }
+
+      const totalExpenses = categoryValues.reduce(
+        (categoryTotal, category) =>
+          categoryTotal +
+          (Array.isArray(category?.expenses)
+            ? category.expenses.reduce(
+                (expenseTotal: number, expense: { amount?: number }) =>
+                  expenseTotal + Number(expense.amount ?? 0),
+                0,
+              )
+            : 0),
+        0,
+      );
+
+      return totalExpenses > income ? { overBudget: true } : null;
+    };
   }
 
   private addGroupError(control: AbstractControl, key: string): void {
