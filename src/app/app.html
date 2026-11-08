@@ -1,12 +1,15 @@
 <div class="page-shell">
   <a class="skip-link" href="#main-content">Lewati ke formulir anggaran</a>
   <header class="app-header">
-    <div>
+    <div class="brand-lockup">
       <p class="eyebrow">ANGGARAN BULANAN</p>
       <h1>Budget<span>Ku</span></h1>
       <p class="hero-copy">Susun anggaran bulan ini, satu kebutuhan pada satu waktu.</p>
     </div>
-    <p class="header-note">Data hanya bertahan selama halaman terbuka</p>
+    <div class="header-meta">
+      <span class="header-mark" aria-hidden="true">BK</span>
+      <p class="header-note">Data hanya bertahan selama halaman terbuka</p>
+    </div>
   </header>
 
   <main id="main-content" class="budget-main">
@@ -20,37 +23,41 @@
       <div class="workspace">
         <div class="work-column">
           <section class="panel income-panel" aria-labelledby="income-title">
-            <div class="section-heading">
-              <div>
+            <div class="income-layout">
+              <div class="section-heading income-copy">
+                <div>
                 <p class="section-kicker">MULAI DARI SINI</p>
                 <h2 id="income-title">Berapa pendapatan bulan ini?</h2>
                 <p>Angka ini menjadi batas untuk semua kebutuhan yang kamu tambahkan.</p>
+                </div>
+              </div>
+
+              <div class="income-field">
+                <label class="field-label" for="income">Pendapatan bulanan</label>
+                <div class="money-input">
+                  <span aria-hidden="true">Rp</span>
+                  <input
+                    id="income"
+                    #incomeInput
+                    name="monthly-income"
+                    autocomplete="off"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    formControlName="income"
+                    placeholder="0"
+                    [attr.aria-describedby]="incomeErrorId"
+                    [attr.aria-invalid]="showControlError(incomeControl)"
+                    (focus)="selectInitialZero($event)"
+                    (input)="formatAmountInput($event, incomeControl)"
+                    (blur)="updateIncome()"
+                  />
+                </div>
+                <p class="field-error" id="income-error" *ngIf="showControlError(incomeControl)">
+                  Pendapatan wajib lebih besar dari Rp0.
+                </p>
               </div>
             </div>
-
-            <label class="field-label" for="income">Pendapatan bulanan</label>
-            <div class="money-input">
-              <span aria-hidden="true">Rp</span>
-              <input
-                id="income"
-                #incomeInput
-                name="monthly-income"
-                autocomplete="off"
-                type="text"
-                inputmode="numeric"
-                pattern="[0-9]*"
-                formControlName="income"
-                placeholder="0"
-                [attr.aria-describedby]="incomeErrorId"
-                [attr.aria-invalid]="showControlError(incomeControl)"
-                (focus)="selectInitialZero($event)"
-                (input)="formatAmountInput($event, incomeControl)"
-                (blur)="updateIncome()"
-              />
-            </div>
-            <p class="field-error" id="income-error" *ngIf="showControlError(incomeControl)">
-              Pendapatan wajib lebih besar dari Rp0.
-            </p>
           </section>
 
           <section
