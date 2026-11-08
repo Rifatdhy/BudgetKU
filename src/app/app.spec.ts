@@ -149,6 +149,42 @@ describe('BudgetPlannerComponent', () => {
     expect(component.categories.length).toBe(0);
   });
 
+  it('opens the reset confirmation without changing the budget', () => {
+    component.incomeControl.setValue(1_000_000);
+    component.appendCategory();
+
+    component.requestReset();
+
+    expect(component.isResetDialogOpen).toBeTrue();
+    expect(component.incomeControl.value).toBe(1_000_000);
+    expect(component.categories.length).toBe(1);
+  });
+
+  it('cancels reset without changing the budget', () => {
+    component.incomeControl.setValue(1_000_000);
+    component.appendCategory();
+    component.requestReset();
+
+    component.cancelReset();
+
+    expect(component.isResetDialogOpen).toBeFalse();
+    expect(component.incomeControl.value).toBe(1_000_000);
+    expect(component.categories.length).toBe(1);
+  });
+
+  it('confirms reset and announces the cleared budget', () => {
+    component.incomeControl.setValue(1_000_000);
+    component.appendCategory();
+    component.requestReset();
+
+    component.confirmReset();
+
+    expect(component.isResetDialogOpen).toBeFalse();
+    expect(component.incomeControl.value).toBe(0);
+    expect(component.categories.length).toBe(0);
+    expect(component.statusMessage).toBe('Anggaran berhasil dihapus.');
+  });
+
   it('reports duplicate category names through cross-item validation', () => {
     component.appendCategory();
     component.appendCategory();

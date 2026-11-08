@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, ViewEncapsulation } from '@angular/core';
+import { Component, ElementRef, OnDestroy, ViewChild, ViewEncapsulation } from '@angular/core';
 import {
   AbstractControl,
   FormArray,
@@ -25,13 +25,16 @@ import { SummaryPanelComponent } from './summary-panel/summary-panel';
   selector: 'app-root',
   imports: [CommonModule, ReactiveFormsModule, CategoryCardComponent, SummaryPanelComponent],
   templateUrl: './app.html',
-  styleUrl: './app.css',
   encapsulation: ViewEncapsulation.None,
 })
 export class BudgetPlannerComponent implements OnDestroy {
   readonly maxCategories = 10;
   readonly warningThreshold = 0.8;
   isUpdatingSummary = false;
+  isResetDialogOpen = false;
+  statusMessage = '';
+
+  @ViewChild('incomeInput') private incomeInput?: ElementRef<HTMLInputElement>;
 
   readonly budgetForm: FormGroup<{
     income: FormControl<number>;
@@ -187,7 +190,7 @@ export class BudgetPlannerComponent implements OnDestroy {
   }
 
   get submitLabel(): string {
-    return this.isUpdatingSummary ? 'Menghitung...' : 'Perbarui ringkasan';
+    return this.isUpdatingSummary ? 'Menghitung…' : 'Perbarui ringkasan';
   }
 
   get incomeErrorId(): string | null {
@@ -432,6 +435,29 @@ export class BudgetPlannerComponent implements OnDestroy {
     this.crossItemMessages = [];
     this.confirmedIncome = 0;
     this.confirmedExpenses = 0;
+    this.isResetDialogOpen = false;
+    this.statusMessage = 'Anggaran berhasil dihapus.';
+    setTimeout(() => this.incomeInput?.nativeElement.focus());
+  }
+
+  requestReset(): void {
+    this.isResetDialogOpen = true;
+    setTimeout(() => document.getElementById('cancel-reset')?.focus());
+  }
+
+  cancelReset(): void {
+    this.isResetDialogOpen = false;
+  }
+
+  confirmReset(): void {
+    this.resetBudget();
+  }
+
+  handleResetDialogKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.cancelReset();
+    }
   }
 
   ngOnDestroy(): void {

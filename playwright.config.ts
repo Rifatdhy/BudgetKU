@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: './e2e',
   timeout: 15_000,
   use: {
-    baseURL: 'http://127.0.0.1:4300',
+    baseURL: 'http://localhost:4300',
     trace: 'retain-on-failure',
   },
   projects: [

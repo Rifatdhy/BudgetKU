@@ -21,7 +21,7 @@ test.describe('BudgetKu', () => {
 
     const summary = page.getByRole('region', { name: 'Ringkasan anggaran' });
     await page.getByRole('button', { name: 'Perbarui ringkasan' }).click();
-    await expect(page.getByRole('button', { name: 'Menghitung...' })).toBeVisible();
+     await expect(page.getByRole('button', { name: 'Menghitung…' })).toBeVisible();
     await expect(summary.getByText('Rp 700.000')).toBeVisible();
     await expect(summary.getByText('Rp 4.300.000')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Aman' })).toBeVisible();
@@ -35,6 +35,7 @@ test.describe('BudgetKu', () => {
     await expect(page.getByText('Kategori "kebutuhan rumah" tidak boleh duplikat.')).toBeHidden();
 
     await page.getByRole('button', { name: 'Reset anggaran' }).click();
+    await page.getByRole('button', { name: 'Hapus semua data' }).click();
     await expect(page.getByText('Belum ada kategori')).toBeVisible();
     await expect(page.getByLabel('Pendapatan bulanan')).toHaveValue('0');
   });
@@ -57,7 +58,7 @@ test.describe('BudgetKu', () => {
     await expect(summary.getByText('Rp 100.000')).toBeHidden();
 
     await page.getByRole('button', { name: 'Perbarui ringkasan' }).click();
-    await expect(page.getByRole('button', { name: 'Menghitung...' })).toBeHidden();
+     await expect(page.getByRole('button', { name: 'Menghitung…' })).toBeHidden();
     await expect(summary.getByText('Belum diatur')).toBeVisible();
   });
 
@@ -92,7 +93,7 @@ test.describe('BudgetKu', () => {
 
     await expect(page.getByText('Nama kategori tidak boleh duplikat.')).toBeVisible();
     await page.getByRole('button', { name: 'Perbarui ringkasan' }).click();
-    await expect(page.getByRole('button', { name: 'Menghitung...' })).toBeHidden();
+     await expect(page.getByRole('button', { name: 'Menghitung…' })).toBeHidden();
   });
 
   test('rejects duplicate expense names within one category', async ({ page }) => {
@@ -132,6 +133,7 @@ test.describe('BudgetKu', () => {
     await page.getByLabel('Nama kategori').fill('Rumah');
     await page.getByRole('button', { name: 'Tambah item pengeluaran' }).click();
     await page.getByRole('button', { name: 'Reset anggaran' }).click();
+    await page.getByRole('button', { name: 'Hapus semua data' }).click();
 
     await expect(page.getByText('Belum ada kategori')).toBeVisible();
     await expect(page.getByLabel('Pendapatan bulanan')).toHaveValue('0');
@@ -140,6 +142,22 @@ test.describe('BudgetKu', () => {
       content: document.documentElement.scrollWidth,
     }));
     expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport);
+  });
+
+  test('confirms reset before clearing the budget', async ({ page }) => {
+    await page.goto('/');
+    await page.getByLabel('Pendapatan bulanan').fill('1000000');
+    await page.getByRole('button', { name: 'Tambah kategori pertama' }).click();
+
+    await page.getByRole('button', { name: 'Reset anggaran' }).click();
+    await expect(page.getByRole('heading', { name: 'Hapus semua data anggaran?' })).toBeVisible();
+    await page.getByRole('button', { name: 'Batal' }).click();
+    await expect(page.getByLabel('Pendapatan bulanan')).toHaveValue('1.000.000');
+
+    await page.getByRole('button', { name: 'Reset anggaran' }).click();
+    await page.getByRole('button', { name: 'Hapus semua data' }).click();
+    await expect(page.getByText('Anggaran berhasil dihapus.')).toBeAttached();
+    await expect(page.getByLabel('Pendapatan bulanan')).toHaveValue('0');
   });
 
   test('keeps the mobile layout within the viewport', async ({ page }) => {
