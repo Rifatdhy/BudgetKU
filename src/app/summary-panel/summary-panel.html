@@ -1,0 +1,52 @@
+<section class="summary-panel" role="region" aria-label="Ringkasan anggaran">
+  <div class="summary-heading">
+    <p class="section-kicker">RINGKASAN</p>
+  </div>
+  <p class="summary-intro">Kondisi anggaranmu saat ini</p>
+  <div class="summary-balance" [class.negative]="summary.isOverBudget">
+    <span>Sisa anggaran</span>
+    <strong>{{ summary.remainingBudgetLabel }}</strong>
+  </div>
+  <dl class="summary-details">
+    <div><dt>Pendapatan</dt><dd>{{ summary.confirmedIncomeLabel }}</dd></div>
+    <div><dt>Pengeluaran</dt><dd>{{ summary.confirmedExpenseLabel }}</dd></div>
+    <div><dt>Status</dt><dd>{{ summary.status }}</dd></div>
+  </dl>
+  <div class="usage-panel" aria-label="Pemakaian anggaran">
+    <div class="usage-heading">
+      <span>Pendapatan terpakai</span>
+      <strong>{{ summary.usagePercent | number: '1.0-0' }}%</strong>
+    </div>
+    <div
+      class="progress-track"
+      role="progressbar"
+      aria-label="Persentase pemakaian anggaran"
+      [attr.aria-valuenow]="summary.progressWidth"
+      aria-valuemin="0"
+      aria-valuemax="100"
+    >
+      <div class="progress-value" [style.width.%]="summary.progressWidth"></div>
+    </div>
+    <p>{{ summary.usageLabel }}</p>
+  </div>
+</section>
+
+<section
+  class="status-panel"
+  [class.status-warning]="summary.isNearLimit"
+  [class.status-danger]="summary.isOverBudget"
+  aria-live="polite"
+>
+  <div
+    class="status-icon"
+    [class.status-icon-neutral]="!summary.isConfigured"
+    aria-hidden="true"
+  >
+    {{ summary.statusIcon }}
+  </div>
+  <div>
+    <p class="section-kicker">STATUS ANGGARAN</p>
+    <h2>{{ summary.status }}</h2>
+    <p>{{ summary.statusDescription }}</p>
+  </div>
+</section>

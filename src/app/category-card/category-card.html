@@ -1,0 +1,151 @@
+<article class="category-card" [formGroup]="category">
+  <div class="category-topline">
+    <div class="category-number" aria-hidden="true">{{ categoryIndex + 1 | number: '2.0-0' }}</div>
+    <div class="category-name-wrap">
+      <label class="field-label" [for]="'category-' + categoryIndex">Nama kategori</label>
+      <input
+        class="category-name"
+        [id]="'category-' + categoryIndex"
+        type="text"
+        formControlName="name"
+        placeholder="Contoh: Kebutuhan Rumah"
+        [attr.aria-describedby]="categoryErrorId"
+        [attr.aria-invalid]="!!errorMessage"
+      />
+      <p class="field-error" [id]="'category-error-' + categoryIndex" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </p>
+    </div>
+    <div class="category-total">
+      <span>Total kategori</span>
+      <strong>{{ totalLabel }}</strong>
+    </div>
+    <button
+      class="category-toggle"
+      type="button"
+      (click)="toggleCategory.emit(category)"
+      [attr.aria-expanded]="expanded"
+      [attr.aria-controls]="'category-details-' + categoryIndex"
+      [attr.aria-label]="toggleAriaLabel"
+    >
+      {{ toggleText }}
+    </button>
+    <button
+      class="icon-button danger"
+      type="button"
+      (click)="removeCategory.emit(categoryIndex)"
+      [disabled]="!canRemoveCategory"
+      title="Minimal satu kategori harus tersedia"
+      [attr.aria-label]="'Hapus kategori ' + (categoryIndex + 1)"
+    >
+      ×
+    </button>
+  </div>
+
+  <div class="category-progress">
+    <div
+      class="category-progress-track"
+      role="progressbar"
+      [attr.aria-label]="'Pemakaian kategori ' + categoryName"
+      [attr.aria-valuenow]="usagePercent"
+      aria-valuemin="0"
+      aria-valuemax="100"
+    >
+      <div class="category-progress-value" [style.width.%]="usagePercent"></div>
+    </div>
+    <span>{{ usagePercent | number: '1.0-0' }}% dari pendapatan</span>
+  </div>
+
+  <ng-container *ngIf="expanded; else collapsedCategory">
+    <div class="subitems-header">
+      <span>Rincian pengeluaran</span>
+      <span class="position-hint" *ngIf="positionHint">{{ positionHint }}</span>
+    </div>
+
+    <div class="category-details" [id]="'category-details-' + categoryIndex">
+      <div class="expense-list" formArrayName="expenses">
+        <div
+          class="expense-row"
+          *ngFor="
+            let expense of expenses.controls;
+            let expenseIndex = index;
+            let expenseFirst = first;
+            let expenseLast = last;
+            trackBy: trackByExpense
+          "
+          [formGroupName]="expenseIndex"
+        >
+          <span class="row-index" aria-hidden="true">{{ expenseIndex + 1 }}</span>
+          <div class="expense-name-field">
+            <label
+              class="expense-label"
+              [for]="'expense-name-' + categoryIndex + '-' + expenseIndex"
+              >Nama pengeluaran</label
+            >
+            <input
+              [id]="'expense-name-' + categoryIndex + '-' + expenseIndex"
+              type="text"
+              formControlName="name"
+              [placeholder]="expenseNamePlaceholder(expenseFirst)"
+              [attr.aria-describedby]="expenseNameErrorId(expenseIndex)"
+              [attr.aria-invalid]="showError(expense.controls.name)"
+            />
+            <small
+              class="field-error"
+              [id]="'expense-name-error-' + categoryIndex + '-' + expenseIndex"
+              *ngIf="showError(expense.controls.name)"
+              >Nama item wajib diisi.</small
+            >
+          </div>
+          <div class="amount-cell">
+            <label
+              class="expense-label"
+              [for]="'expense-amount-' + categoryIndex + '-' + expenseIndex"
+              >Nominal</label
+            >
+            <div class="amount-field">
+              <span aria-hidden="true">Rp</span>
+              <input
+                [id]="'expense-amount-' + categoryIndex + '-' + expenseIndex"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                formControlName="amount"
+                placeholder="0"
+                [attr.aria-describedby]="expenseAmountErrorId(expenseIndex)"
+                [attr.aria-invalid]="showError(expense.controls.amount)"
+                (focus)="amountFocus.emit($event)"
+                (input)="amountInput.emit({ event: $event, control: expense.controls.amount })"
+              />
+            </div>
+            <small
+              class="field-error"
+              [id]="'expense-amount-error-' + categoryIndex + '-' + expenseIndex"
+              *ngIf="showError(expense.controls.amount)"
+              >Nominal harus lebih besar dari Rp0.</small
+            >
+          </div>
+          <button
+            class="remove-row"
+            type="button"
+            (click)="removeExpense.emit({ categoryIndex: categoryIndex, expenseIndex: expenseIndex })"
+            [disabled]="!canRemoveExpense(expenseLast)"
+            [attr.aria-label]="'Hapus item ' + (expenseIndex + 1)"
+          >
+            ×
+          </button>
+        </div>
+      </div>
+
+      <button class="add-item-button" type="button" (click)="appendExpense.emit(categoryIndex)">
+        <span aria-hidden="true">＋</span> Tambah item pengeluaran
+      </button>
+    </div>
+  </ng-container>
+
+  <ng-template #collapsedCategory>
+    <div class="collapsed-category" [id]="'category-details-' + categoryIndex">
+      Rincian disembunyikan. Tekan Lihat detail untuk melihat item.
+    </div>
+  </ng-template>
+</article>

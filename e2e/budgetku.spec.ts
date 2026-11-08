@@ -21,11 +21,10 @@ test.describe('BudgetKu', () => {
 
     const summary = page.getByRole('region', { name: 'Ringkasan anggaran' });
     await page.getByRole('button', { name: 'Perbarui ringkasan' }).click();
+    await expect(page.getByRole('button', { name: 'Menghitung...' })).toBeVisible();
     await expect(summary.getByText('Rp 700.000')).toBeVisible();
     await expect(summary.getByText('Rp 4.300.000')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Aman' })).toBeVisible();
-
-    await expect(page.getByRole('button', { name: 'Menghitung...' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Perbarui ringkasan' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Tambah kategori' }).click();

@@ -1,4 +1,4 @@
-# Use Case BudgetKu
+﻿# Use Case BudgetKu
 
 ## Aktor
 
@@ -15,6 +15,7 @@
 | UC-05 | Mengonfirmasi ringkasan anggaran | Total income, total pengeluaran, sisa, persentase, dan status diperbarui setelah pengguna menekan `Perbarui ringkasan` pada form yang valid. |
 | UC-06 | Menyembunyikan rincian kategori | Item kategori dapat ditutup dan dibuka kembali. |
 | UC-07 | Mereset anggaran | Form kembali ke income `0` tanpa kategori dan tanpa pesan validasi lama. |
+| UC-08 | Menampilkan peringatan over-budget | Status draf `Melebihi anggaran` dan pesan total pengeluaran muncul tanpa mengubah snapshot. |
 
 ## Diagram use case
 
@@ -28,6 +29,7 @@ flowchart LR
   summary((UC-05 Konfirmasi ringkasan))
   toggle((UC-06 Buka atau tutup rincian))
   reset((UC-07 Reset anggaran))
+  overBudget((UC-08 Peringatan over-budget))
 
   user --> income
   user --> category
@@ -35,11 +37,11 @@ flowchart LR
   user --> summary
   user --> toggle
   user --> reset
-  income -. memicu .-> validation
-  category -. memicu .-> validation
-  item -. memicu .-> validation
-  validation -. memberi feedback .-> summary
-  user -. klik Perbarui ringkasan .-> summary
+  income -. «include» .-> validation
+  category -. «include» .-> validation
+  item -. «include» .-> validation
+  summary -. «include» .-> validation
+  overBudget -. «extend» .-> validation
 ```
 
 ## Use case description
@@ -89,7 +91,7 @@ flowchart LR
 | Tujuan | Mencegah data tidak lengkap, duplikat, atau melebihi pendapatan. |
 | Precondition | Form berisi pendapatan, kategori, dan item. |
 | Alur utama | 1. Setiap perubahan nilai memicu `valueChanges`.<br>2. Controller menjalankan `runCrossItemValidation()`.<br>3. Controller memeriksa nama kategori duplikat, nama item duplikat per kategori, jumlah item minimal satu, dan total pengeluaran terhadap pendapatan.<br>4. Pesan disimpan di `validationMessages` dan error group dipasang pada kontrol terkait.<br>5. View menampilkan pesan inline dan panel validasi. |
-| Skenario alternatif | Jika total pengeluaran melebihi pendapatan, panel validasi menampilkan status `Melebihi anggaran` dan pesan `Total pengeluaran tidak boleh melebihi pendapatan bulanan.` `isDraftOverBudget` bernilai benar, tetapi snapshot ringkasan tidak berubah. |
+| Skenario alternatif | Jika total pengeluaran melebihi pendapatan, use case perluasan `UC-08 Peringatan over-budget` berjalan: panel validasi menampilkan status `Melebihi anggaran` dan pesan `Total pengeluaran tidak boleh melebihi pendapatan bulanan.` `isDraftOverBudget` bernilai benar, tetapi snapshot ringkasan tidak berubah. |
 | Postcondition | Kondisi valid atau tidak valid terlihat di area kerja. Ringkasan tetap memakai snapshot terakhir yang valid. |
 
 ### UC-05: Mengonfirmasi ringkasan anggaran
@@ -115,3 +117,15 @@ flowchart LR
 | Alur utama | 1. Pengguna menekan `Reset anggaran`.<br>2. View memanggil `resetBudget()`.<br>3. Controller membatalkan timer ringkasan, menghentikan state `Menghitung...`, mereset `budgetForm`, mengosongkan `categories`, dan mengosongkan `validationMessages`.<br>4. Controller mengembalikan `confirmedIncome` dan `confirmedExpenses` ke `0`.<br>5. View menampilkan empty state dan ringkasan awal `Belum diatur`. |
 | Skenario alternatif | Timer ringkasan yang masih berjalan dibatalkan agar state loading tidak tertinggal setelah reset. |
 | Postcondition | Form kosong, tidak ada kategori, tidak ada pesan validasi lama, dan snapshot ringkasan kembali ke nol. |
+
+### UC-08: Menampilkan peringatan over-budget
+
+| Elemen | Deskripsi |
+| --- | --- |
+| Nama use case | UC-08 Menampilkan peringatan over-budget |
+| Aktor | Pengguna |
+| Tujuan | Memberi peringatan langsung saat total pengeluaran draf melampaui pendapatan, tanpa merusak ringkasan terkonfirmasi. |
+| Precondition | Pendapatan lebih besar dari nol dan form berisi minimal satu item pengeluaran. |
+| Alur utama | 1. Pengguna mengubah nominal sehingga `calculateTotalExpenses()` melebihi `incomeControl.value`.<br>2. `valueChanges` memicu `runCrossItemValidation()`.<br>3. Controller mengisi `validationMessages` dan `isDraftOverBudget` menjadi benar.<br>4. Getter `validationHeading` mengembalikan `Melebihi anggaran`.<br>5. View menampilkan panel `role="alert"` dengan pesan total pengeluaran. |
+| Skenario alternatif | Jika total kembali di bawah atau sama dengan pendapatan, `isDraftOverBudget` menjadi salah dan panel peringatan hilang. Snapshot ringkasan tetap tidak berubah selama kondisi ini. |
+| Postcondition | Pengguna melihat peringatan draf real-time; `confirmedIncome` dan `confirmedExpenses` tetap memakai nilai terakhir yang valid. |

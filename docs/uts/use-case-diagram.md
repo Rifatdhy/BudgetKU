@@ -1,4 +1,4 @@
-# Use Case Diagram
+﻿# Use Case Diagram
 
 Dokumen ini adalah sumber diagram yang dapat dirender ke PNG atau PDF menggunakan Mermaid. Diagram menunjukkan aplikasi non-CRUD tanpa aktor backend. ID use case sama dengan `docs/uts/use-case.md`.
 
@@ -14,6 +14,7 @@ flowchart LR
     summary((UC-05 Konfirmasi ringkasan))
     toggle((UC-06 Buka atau tutup rincian))
     reset((UC-07 Reset anggaran))
+    overBudget((UC-08 Peringatan over-budget))
   end
 
   actor --> income
@@ -23,14 +24,16 @@ flowchart LR
   actor --> toggle
   actor --> reset
 
-  income -. include .-> validation
-  category -. include .-> validation
-  item -. include .-> validation
-  validation -. extend saat over-budget .-> summary
+  income -. «include» .-> validation
+  category -. «include» .-> validation
+  item -. «include» .-> validation
+  summary -. «include» .-> validation
+  overBudget -. «extend» .-> validation
 ```
 
 ## Catatan relasi
 
-- `include` dipakai karena validasi selalu menjadi bagian dari pengisian pendapatan, kategori, dan item.
-- `extend` dipakai untuk peringatan over-budget yang memperluas alur konfirmasi ringkasan, tetapi tidak wajib terjadi.
+- `include` dipakai karena validasi selalu menjadi bagian dari alur dasar: setiap perubahan pendapatan, kategori, item, dan konfirmasi ringkasan selalu menjalankan `runCrossItemValidation()`. Arah panah selalu dari use case dasar menuju use case yang disertakan.
+- `extend` dipakai untuk `UC-08 Peringatan over-budget`. Use case perluasan ini hanya berjalan bila total pengeluaran melampaui pendapatan, dan arah panahnya menuju use case dasar `UC-04 Validasi anggaran`, bukan sebaliknya.
+- `UC-08` tidak mengubah snapshot ringkasan. Ia hanya menampilkan status draf `Melebihi anggaran` dan pesan validasi.
 - Tidak ada aktor backend, database, atau service eksternal.

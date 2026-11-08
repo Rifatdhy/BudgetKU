@@ -73,9 +73,11 @@ Gunakan `npx playwright test --workers=1` jika ingin menghindari flake artefak t
 - `docs/uts/use-case.md`: aktor, daftar use case, dan use case description.
 - `docs/uts/use-case-diagram.md`: sumber diagram use case, tersedia juga sebagai `.png` dan `.pdf`.
 - `docs/uts/sequence-diagram.md`: sequence diagram View dan Controller, tersedia juga sebagai `.png` dan `.pdf`.
-- `docs/uts/component-data-mapping.md`: component tree, data mapping, dan pemetaan elemen View.
+- `docs/uts/component-data-mapping.md`: component tree, pemetaan `@Input`/`@Output`, data mapping, dan pemetaan elemen View.
+- `docs/uts/component-architecture.md`: sumber diagram arsitektur komponen, tersedia juga sebagai `.png` dan `.pdf`.
 - `docs/uts/demo-checklist.md`: urutan demo presentasi.
-- `docs/uts/laporan-outline.md`: kerangka laporan dengan placeholder identitas.
+- `docs/uts/laporan.md`: laporan UTS lengkap, tersedia juga sebagai `laporan.pdf`.
+- `docs/uts/laporan-outline.md`: catatan bahwa laporan lengkap sudah menggantikan kerangka awal.
 - `DESIGN.md`: arah desain, dial, dan alasan keputusan visual.
 
 ## Struktur source

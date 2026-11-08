@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, ViewEncapsulation } from '@angular/core';
 import {
   AbstractControl,
   FormArray,
@@ -12,22 +12,21 @@ import {
   Validators,
 } from '@angular/forms';
 import { Subscription } from 'rxjs';
-
-type ExpenseGroup = FormGroup<{
-  name: FormControl<string>;
-  amount: FormControl<number>;
-}>;
-
-type CategoryGroup = FormGroup<{
-  name: FormControl<string>;
-  expenses: FormArray<ExpenseGroup>;
-}>;
+import { CategoryCardComponent } from './category-card/category-card';
+import {
+  BudgetStatus,
+  BudgetSummaryView,
+  CategoryGroup,
+  ExpenseGroup,
+} from './budget.types';
+import { SummaryPanelComponent } from './summary-panel/summary-panel';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, CategoryCardComponent, SummaryPanelComponent],
   templateUrl: './app.html',
   styleUrl: './app.css',
+  encapsulation: ViewEncapsulation.None,
 })
 export class BudgetPlannerComponent implements OnDestroy {
   readonly maxCategories = 10;
@@ -148,6 +147,59 @@ export class BudgetPlannerComponent implements OnDestroy {
     }
 
     return `${Math.round(this.budgetUsagePercent)}% dari pendapatan terpakai`;
+  }
+
+  get summaryView(): BudgetSummaryView {
+    return {
+      remainingBudgetLabel: this.formatRupiah(this.remainingBudget),
+      confirmedIncomeLabel: this.formatRupiah(this.confirmedIncomeAmount),
+      confirmedExpenseLabel: this.formatRupiah(this.confirmedExpenseAmount),
+      status: this.budgetStatus,
+      usagePercent: this.budgetUsagePercent,
+      progressWidth: this.budgetProgressWidth,
+      usageLabel: this.budgetUsageLabel,
+      isConfigured: this.isBudgetConfigured,
+      statusIcon: this.statusIcon,
+      isNearLimit: this.isNearLimit,
+      isOverBudget: this.isOverBudget,
+      statusDescription: this.statusDescription,
+    };
+  }
+
+  get isNearLimit(): boolean {
+    return this.budgetStatus === 'Mendekati batas';
+  }
+
+  get statusDescription(): string {
+    if (!this.isBudgetConfigured) {
+      return 'Masukkan pendapatan untuk mulai menyusun anggaran.';
+    }
+
+    if (this.isOverBudget) {
+      return 'Pengeluaranmu sudah melebihi pendapatan. Kurangi beberapa item.';
+    }
+
+    if (this.isNearLimit) {
+      return 'Sisakan sedikit ruang untuk kebutuhan tak terduga.';
+    }
+
+    return 'Kondisi anggaranmu masih terkendali bulan ini.';
+  }
+
+  get submitLabel(): string {
+    return this.isUpdatingSummary ? 'Menghitung...' : 'Perbarui ringkasan';
+  }
+
+  get incomeErrorId(): string | null {
+    return this.showControlError(this.incomeControl) ? 'income-error' : null;
+  }
+
+  get hasValidationMessages(): boolean {
+    return this.validationMessages.length > 0;
+  }
+
+  get validationHeading(): string {
+    return this.isDraftOverBudget ? 'Melebihi anggaran' : 'Periksa kembali anggaranmu';
   }
 
   updateIncome(): void {
@@ -295,7 +347,7 @@ export class BudgetPlannerComponent implements OnDestroy {
     return this.incomeControl.value - this.calculateTotalExpenses();
   }
 
-  getBudgetStatus(): 'Belum diatur' | 'Aman' | 'Mendekati batas' | 'Melebihi anggaran' {
+  getBudgetStatus(): BudgetStatus {
     if (!this.isBudgetConfigured) {
       return 'Belum diatur';
     }
@@ -326,6 +378,30 @@ export class BudgetPlannerComponent implements OnDestroy {
     return category.controls.name.value.trim() || 'Kategori tanpa nama';
   }
 
+  getCategoryError(category: CategoryGroup): string {
+    if (category.errors?.['duplicateName']) {
+      return 'Nama kategori tidak boleh duplikat.';
+    }
+
+    return this.showControlError(category.controls.name) ? 'Nama kategori wajib diisi.' : '';
+  }
+
+  getPositionHint(first: boolean, last: boolean): string {
+    if (first && last) {
+      return 'Satu-satunya kategori';
+    }
+
+    if (first) {
+      return 'Kategori pertama';
+    }
+
+    return last ? 'Kategori terakhir' : '';
+  }
+
+  canRemoveCategory(first: boolean, last: boolean): boolean {
+    return !(first && last);
+  }
+
   getCategoryUsagePercent(category: CategoryGroup): number {
     const income = this.incomeControl.value;
 
@@ -338,10 +414,6 @@ export class BudgetPlannerComponent implements OnDestroy {
 
   trackByCategory = (index: number, category: CategoryGroup): string => {
     return this.getTrackId(category);
-  };
-
-  trackByExpense = (index: number, expense: ExpenseGroup): string => {
-    return this.getTrackId(expense);
   };
 
   showControlError(control: AbstractControl): boolean {

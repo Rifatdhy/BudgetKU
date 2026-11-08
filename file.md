@@ -372,8 +372,8 @@ removeExpense(categoryIndex: number, expenseIndex: number)
 calculateTotalExpenses()
 calculateRemainingBudget()
 getBudgetStatus()
-trackByCategory(index: number, category: AbstractControl)
-trackByExpense(index: number, expense: AbstractControl)
+trackByCategory = (index: number, category: CategoryGroup) => string
+trackByExpense = (index: number, expense: ExpenseGroup) => string
 ```
 
 Nama method dapat diubah, tetapi setelah dipilih harus digunakan konsisten pada Template, Component TypeScript, Use Case Description, dan Sequence Diagram.
@@ -400,42 +400,52 @@ Validasi harus dijalankan di Controller, bukan melalui logika panjang di HTML.
 
 ### 8.6 Pemetaan Komponen
 
-Component Tree yang direkomendasikan:
+Component tree aktual:
 
 ```text
-BudgetPlannerComponent
-├── BudgetInputComponent
-├── CategoryFormComponent
-│   └── ExpenseItemComponent
-└── BudgetSummaryComponent
+BudgetPlannerComponent (src/app/app.ts)
+├── app.html
+│   ├── BudgetInput (panel pendapatan di root template)
+│   ├── CategoryCardComponent (src/app/category-card/)
+│   │   └── nested FormArray expenses
+│   └── SummaryPanelComponent (src/app/summary-panel/)
+├── budget.types.ts
+└── app.css
 ```
 
-Untuk implementasi minimal, semua fitur boleh berada pada `BudgetPlannerComponent`. Jika komponen dipisah, gunakan pemetaan berikut:
+Root `BudgetPlannerComponent` memegang seluruh state, validasi, mutasi `FormArray`, dan kalkulasi. Dua child component bersifat presentasional: menerima data siap tampil lewat `@Input` dan mengirim aksi lewat `@Output` dan `EventEmitter`.
 
 | Komponen | Tanggung jawab | Komunikasi |
 |---|---|---|
-| `BudgetPlannerComponent` | Menyimpan `FormGroup`, validasi, mutasi state, dan kalkulasi | Parent state |
-| `BudgetInputComponent` | Menampilkan input pendapatan | `@Input` dan `@Output` |
-| `CategoryFormComponent` | Menampilkan kategori dan nested item | `@Input`, `@Output`, `EventEmitter` |
-| `ExpenseItemComponent` | Menampilkan satu item pengeluaran | `@Input` |
-| `BudgetSummaryComponent` | Menampilkan total, sisa, dan status anggaran | `@Input` |
+| `BudgetPlannerComponent` | Menyimpan `FormGroup`, validasi, mutasi state, kalkulasi, dan snapshot | Parent state |
+| `CategoryCardComponent` | Menampilkan satu kategori, nested item, progress, dan error nama | `@Input category`, `categoryIndex`, `expanded`, `totalLabel`, `usagePercent`, `positionHint`, `canRemoveCategory`, `errorMessage`; `@Output removeCategory`, `toggleCategory`, `appendExpense`, `removeExpense`, `amountInput`, `amountFocus` |
+| `SummaryPanelComponent` | Menampilkan total, sisa, progress, dan status anggaran | `@Input summary: BudgetSummaryView` |
+
+Root memakai `ViewEncapsulation.None` agar `app.css` tetap berlaku pada elemen di dalam child. Karena itu stylesheet root memakai selector `app-root`, bukan `:host`.
 
 ### 8.7 Persyaratan Template Angular
 
 Template harus menunjukkan seluruh fitur berikut:
 
 ```html
+<!-- app.html (root) -->
 <div *ngFor="let category of categories.controls; let categoryIndex = index; let first = first; let last = last; trackBy: trackByCategory">
-  <span>Kategori {{ categoryIndex + 1 }}</span>
+  <app-category-card
+    [category]="category"
+    [categoryIndex]="categoryIndex"
+    [expanded]="isCategoryExpanded(category)"
+    [positionHint]="getPositionHint(first, last)"
+    [canRemoveCategory]="canRemoveCategory(first, last)"
+  ></app-category-card>
+</div>
 
-  <div *ngFor="let expense of getExpenses(category).controls; let expenseIndex = index; trackBy: trackByExpense">
-    <span>Item {{ expenseIndex + 1 }}</span>
-  </div>
-
-  <button *ngIf="!first" type="button">Aksi kategori</button>
-  <button *ngIf="!last" type="button">Aksi berikutnya</button>
+<!-- category-card.html (child) -->
+<div *ngFor="let expense of expenses.controls; let expenseIndex = index; let expenseFirst = first; let expenseLast = last; trackBy: trackByExpense">
+  <span>Item {{ expenseIndex + 1 }}</span>
 </div>
 ```
+
+`first` dan `last` loop kategori dipakai di root untuk `positionHint` dan `canRemoveCategory`; `first` dan `last` loop item dipakai di child untuk placeholder dan status tombol hapus.
 
 Implementasi aktual harus menghubungkan tombol tersebut dengan handler yang benar, bukan placeholder.
 
@@ -483,7 +493,7 @@ Urutan demo minimum:
 | Ide non-CRUD dan interaktif | Perencanaan anggaran dengan kalkulasi area kerja dan ringkasan terkonfirmasi |
 | Minimal 3 use case | Mengatur pendapatan, mengelola kategori dan item, mengonfirmasi ringkasan |
 | Sequence View–Controller | Event binding → handler → validasi/mutasi → re-render |
-| Component Tree | Planner, input, category form, expense item, summary |
+| Component Tree | `BudgetPlannerComponent` → `CategoryCardComponent` dan `SummaryPanelComponent` dengan `@Input`/`@Output` |
 | FormArray dinamis | `categories` dan nested `expenses` |
 | Append dan remove at index | `appendCategory()`, `removeCategory()`, `appendExpense()`, `removeExpense()` |
 | Cross-item validation | Duplikasi kategori, duplikasi item, batas kategori, dan total terhadap pendapatan |
@@ -514,6 +524,7 @@ rectangle "BudgetKu" {
   usecase "UC-05 Mengonfirmasi Ringkasan" as UC5
   usecase "UC-06 Buka atau Tutup Rincian" as UC6
   usecase "UC-07 Reset Anggaran" as UC7
+  usecase "UC-08 Peringatan Over-Budget" as UC8
 }
 
 Pengguna --> UC1
@@ -526,39 +537,45 @@ Pengguna --> UC7
 UC1 .> UC4 : <<include>>
 UC2 .> UC4 : <<include>>
 UC3 .> UC4 : <<include>>
-UC4 .> UC5 : <<extend>> : peringatan over-budget
+UC5 .> UC4 : <<include>>
+UC8 .> UC4 : <<extend>>
 @enduml
 ```
 
-Catatan: relasi `<<extend>>` pada konfirmasi ringkasan dipakai saat peringatan over-budget muncul. Relasi `<<include>>` dipakai untuk proses yang selalu menjadi bagian dari use case utama. Sumber yang dipakai laporan ada di `docs/uts/use-case-diagram.md` dengan ID yang sama.
+Catatan: `<<include>>` selalu mengarah dari use case dasar ke use case yang selalu dijalankan. `<<extend>>` mengarah dari use case perluasan `UC-08` ke use case dasar `UC-04`, karena peringatan over-budget hanya muncul pada kondisi tertentu. Sumber yang dipakai laporan ada di `docs/uts/use-case-diagram.md` dengan ID yang sama.
 
 ### 9.2 Sequence Diagram: Menambah Kategori dan Item
 
 ```plantuml
 @startuml
 actor Pengguna
-participant "BudgetPlannerComponent.html\n(View)" as View
-participant "BudgetPlannerComponent.ts\n(Controller)" as Controller
+participant "app.html\n(View root)" as View
+participant "CategoryCardComponent\n(View child)" as CategoryView
+participant "BudgetPlannerComponent\n(Controller)" as Controller
 participant "categories: FormArray" as Categories
 participant "expenses: nested FormArray" as Expenses
 
-Pengguna -> View : Mengisi nama kategori
 Pengguna -> View : Klik "Tambah Kategori"
 View -> Controller : appendCategory()
-Controller -> Controller : Validasi jumlah dan nama kategori
-alt Input valid
-  Controller -> Categories : push(createCategoryGroup())
+Controller -> Controller : Periksa maxCategories dan createCategoryGroup()
+alt Batas kategori belum tercapai
+  Controller -> Categories : push(CategoryGroup dengan satu ExpenseGroup)
   Controller -> Controller : runCrossItemValidation()
-  Controller --> View : State berubah
-  View -> View : Re-render populated state
-else Input tidak valid
-  Controller --> View : Tampilkan pesan validasi kategori
+  Controller --> View : categories berubah
+  View -> CategoryView : @Input category, categoryIndex, totalLabel, usagePercent
+  CategoryView --> Pengguna : Kartu kategori dan nested item tampil
+else Sudah 10 kategori
+  Controller --> View : validationMessages "Maksimal 10 kategori diperbolehkan."
 end
 
-Pengguna -> View : Klik "Tambah Item"
+Pengguna -> CategoryView : Klik "Tambah item pengeluaran"
+CategoryView -> View : appendExpense.emit(categoryIndex)
 View -> Controller : appendExpense(categoryIndex)
 Controller -> Expenses : push(createExpenseGroup())
-Controller --> View : Re-render nested item
+Controller -> Controller : runCrossItemValidation()
+Controller --> View : expenses dan calculateTotalExpenses() berubah
+View --> CategoryView : @Input category yang sama
+CategoryView --> Pengguna : Item baru tampil melalui nested loop
 @enduml
 ```
 
@@ -567,33 +584,44 @@ Controller --> View : Re-render nested item
 ```plantuml
 @startuml
 actor Pengguna
-participant "BudgetPlannerComponent.html\n(View)" as View
-participant "BudgetPlannerComponent.ts\n(Controller)" as Controller
+participant "app.html\n(View root)" as View
+participant "CategoryCardComponent\n(View child)" as CategoryView
+participant "SummaryPanelComponent\n(View child)" as Summary
+participant "BudgetPlannerComponent\n(Controller)" as Controller
 participant "budgetForm: FormGroup" as Form
 participant "categories: FormArray" as Categories
-participant "Summary Panel\n(View)" as Summary
 
-Pengguna -> View : Mengubah nominal item
+Pengguna -> CategoryView : Mengubah nominal item
+CategoryView -> View : amountInput.emit({ event, control })
 View -> Controller : formatAmountInput(event, control)
-Controller -> Form : setValue(angka murni)
+Controller -> Form : expense.amount.setValue(angka murni)
 Form --> Controller : valueChanges
 Controller -> Controller : runCrossItemValidation()
 Controller -> Controller : calculateTotalExpenses()
+Controller -> Controller : getCategoryTotal(category)
+Controller -> Controller : getCategoryUsagePercent(category)
 Controller -> Categories : Membaca seluruh baris dan nested item
-alt Total <= pendapatan dan input valid
-  Controller --> View : Validasi lolos dan status draf aman
-else Total > pendapatan atau input invalid
-  Controller --> View : Pesan cross-item validation
-  View -> View : Status draf MELEBIHI ANGGARAN
-end
+Controller --> View : validationMessages dan getter total
+View --> CategoryView : @Input totalLabel dan usagePercent baru
+CategoryView --> Pengguna : Total kategori dan progress real-time
 
 Pengguna -> View : Klik Perbarui ringkasan
 View -> Controller : submitBudget()
-alt Form valid dan total <= pendapatan
+Controller -> Form : markAllAsTouched()
+Controller -> Controller : updateIncome() dan validasi form
+Controller -> Controller : calculateTotalExpenses()
+alt Form invalid atau total > pendapatan
+  Controller --> View : isUpdatingSummary tetap false
+  View --> Pengguna : Pesan validasi dan status draf Melebihi anggaran
+else Form valid
   Controller -> Controller : Simpan snapshot confirmedIncome dan confirmedExpenses
-  Controller --> Summary : Re-render total, sisa, dan status dari snapshot
-else Form invalid atau over-budget
-  Controller --> View : Pertahankan snapshot dan tampilkan error
+  Controller -> Controller : getBudgetStatus()
+  Controller -> Controller : summaryView (formatRupiah, progress, status)
+  Controller --> View : isUpdatingSummary true dan submitLabel Menghitung...
+  View -> Summary : @Input summary = summaryView
+  Summary --> Pengguna : Sisa, total, progress, dan status dari snapshot
+  Controller --> View : Timer 250 ms selesai
+  View --> Pengguna : Tombol kembali menjadi Perbarui ringkasan
 end
 @enduml
 ```
@@ -622,8 +650,14 @@ Nama berikut harus dipakai sama persis pada Sequence Diagram, Component TypeScri
 | `calculateRemainingBudget()` | Calculation method | Menghitung pendapatan dikurangi pengeluaran |
 | `getBudgetStatus()` | Getter/method | Menentukan status anggaran |
 | `hasCategories` | Getter | Menentukan Empty atau Populated State |
-| `trackByCategory()` | `trackBy` method | Optimasi loop kategori |
-| `trackByExpense()` | `trackBy` method | Optimasi loop item |
+| `summaryView` | Getter | Membentuk `BudgetSummaryView` untuk `SummaryPanelComponent` |
+| `isCategoryExpanded(category)` | Method | Menentukan nilai `@Input expanded` pada category card |
+| `getCategoryTotal(category)` | Calculation method | Total item satu kategori untuk `@Input totalLabel` |
+| `getCategoryUsagePercent(category)` | Calculation method | Progress satu kategori untuk `@Input usagePercent` |
+| `trackByCategory` | `trackBy` property | Optimasi loop kategori di root |
+| `trackByExpense` | `trackBy` property | Optimasi loop item di `CategoryCardComponent` |
+| `CategoryCardComponent` | Child component | Menampilkan satu kategori dan nested item |
+| `SummaryPanelComponent` | Child component | Menampilkan ringkasan dan status dari satu `@Input` |
 
 ## 11. Kriteria Penerimaan Proyek
 
