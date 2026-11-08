@@ -9,9 +9,9 @@
 
 | Identitas | Isi |
 | --- | --- |
-| Nama lengkap | `[NAMA LENGKAP]` |
-| NPM | `[NPM]` |
-| Kelas | `[KELAS]` |
+| Nama lengkap | Rifat Dhiya Ul Lail |
+| NPM | 092024090441 |
+| Kelas | TI Pagi |
 | Studi kasus | BudgetKu, perencana anggaran bulanan |
 | Repository | `https://github.com/Rifatdhy/BudgetKU` |
 
@@ -560,6 +560,6 @@ docs/uts/
 
 ### 12.3 Catatan pengumpulan
 
-- Ganti `[NAMA LENGKAP]`, `[NPM]`, dan `[KELAS]` sebelum mengekspor PDF final.
+- Identitas penulis sudah diisi sesuai dokumen sumber.
 - Sertakan tautan repository GitHub atau ZIP source code.
 - Pastikan diagram, nama method, dan source code tetap sinkron.
