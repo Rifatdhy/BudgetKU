@@ -1,59 +1,96 @@
-# Budgetku
+# BudgetKu
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.42.
+Aplikasi perencana anggaran bulanan berbasis Angular untuk tugas UTS Framework Based Programming. Pengguna mengisi pendapatan, menyusun kategori pengeluaran, lalu menambahkan item di dalam setiap kategori.
 
-## Development server
+Fokus aplikasi ada pada View dan Controller: nested `FormArray`, dynamic multi-input, cross-validation, perhitungan anggaran, template branching, context variable, `trackBy`, dan UI state. Tidak ada backend, database, login, atau penyimpanan permanen. Data hanya bertahan selama halaman terbuka.
 
-To start a local development server, run:
+## Stack
 
-```bash
-ng serve
-```
+- Angular 20 dengan standalone component
+- Typed reactive forms (`FormGroup`, `FormArray`, `FormControl`)
+- TypeScript strict dan `strictTemplates`
+- Karma dan Jasmine untuk unit test
+- Playwright untuk E2E desktop Chromium dan iPhone 13 mobile
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Menjalankan aplikasi
 
 ```bash
-ng generate component component-name
+npm ci
+npm start
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Buka `http://localhost:4200/`.
+
+## Build
 
 ```bash
-ng generate --help
+npm run build
 ```
 
-## Building
+Hasil build berada di `dist/budgetku` dan tidak boleh diedit sebagai source.
 
-To build the project run:
+## Unit test
 
 ```bash
-ng build
+npm test -- --watch=false
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Angular Karma memakai Chrome yang terpasang di sistem. Jika Chrome tidak tersedia, arahkan `CHROME_BIN` ke browser Chromium yang kompatibel. Contoh di Windows dengan Chromium bawaan Playwright:
 
-## Running unit tests
+```powershell
+$env:CHROME_BIN="$env:LOCALAPPDATA\ms-playwright\chromium_headless_shell-1254\chrome-headless-shell-win64\chrome-headless-shell.exe"
+npm test -- --watch=false --browsers=ChromeHeadless
+```
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+## E2E test
+
+Playwright memakai `http://127.0.0.1:4300` dan tidak menyalakan server otomatis. Jalankan server terpisah lebih dulu:
 
 ```bash
-ng test
+npm start -- --host 127.0.0.1 --port 4300
 ```
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
+Lalu di terminal lain:
 
 ```bash
-ng e2e
+npm run test:e2e
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+Gunakan `npx playwright test --workers=1` jika ingin menghindari flake artefak trace saat beberapa worker berjalan bersamaan.
 
-## Additional Resources
+## Perilaku ringkasan
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- Input form dan validasi memberi feedback langsung.
+- Panel `Ringkasan anggaran` memakai snapshot `confirmedIncome` dan `confirmedExpenses`.
+- Snapshot hanya diperbarui oleh `submitBudget()` ketika form valid dan tidak over-budget.
+- Submit invalid atau over-budget mempertahankan snapshot sebelumnya.
+- Kondisi over-budget tetap terlihat sebagai status draf di panel validasi.
+- `resetBudget()` mengembalikan form dan snapshot ke kondisi awal.
+
+## Dokumentasi UTS
+
+- `file.md`: brief proyek dan pemetaan rubrik.
+- `docs/uts/use-case.md`: aktor, daftar use case, dan use case description.
+- `docs/uts/use-case-diagram.md`: sumber diagram use case, tersedia juga sebagai `.png` dan `.pdf`.
+- `docs/uts/sequence-diagram.md`: sequence diagram View dan Controller, tersedia juga sebagai `.png` dan `.pdf`.
+- `docs/uts/component-data-mapping.md`: component tree, data mapping, dan pemetaan elemen View.
+- `docs/uts/demo-checklist.md`: urutan demo presentasi.
+- `docs/uts/laporan-outline.md`: kerangka laporan dengan placeholder identitas.
+- `DESIGN.md`: arah desain, dial, dan alasan keputusan visual.
+
+## Struktur source
+
+```text
+src/
+├── main.ts
+├── index.html
+├── styles.css
+└── app/
+    ├── app.ts
+    ├── app.html
+    ├── app.css
+    ├── app.spec.ts
+    └── app.config.ts
+e2e/
+└── budgetku.spec.ts
+```

@@ -43,9 +43,13 @@ export class BudgetPlannerComponent implements OnDestroy {
   private readonly trackIds = new WeakMap<object, string>();
   private readonly collapsedCategories = new WeakSet<CategoryGroup>();
   private nextTrackId = 0;
+  private readonly numberFormatter = new Intl.NumberFormat('id-ID', {
+    maximumFractionDigits: 0,
+  });
   private crossItemMessages: string[] = [];
   private confirmedIncome = 0;
   private confirmedExpenses = 0;
+  private summaryTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(private readonly formBuilder: NonNullableFormBuilder) {
     this.budgetForm = this.formBuilder.group({
@@ -102,14 +106,24 @@ export class BudgetPlannerComponent implements OnDestroy {
     return this.confirmedExpenses > this.confirmedIncome;
   }
 
+  get statusIcon(): string {
+    if (!this.isBudgetConfigured) {
+      return '?';
+    }
+
+    return this.budgetStatus === 'Aman' ? '✓' : '!';
+  }
+
+  get isDraftOverBudget(): boolean {
+    return this.incomeControl.value > 0 && this.totalExpenses > this.incomeControl.value;
+  }
+
   get isIncomeValid(): boolean {
     return this.incomeControl.valid && this.incomeControl.value > 0;
   }
 
   formatRupiah(value: number): string {
-    return `Rp ${new Intl.NumberFormat('id-ID', {
-      maximumFractionDigits: 0,
-    }).format(value)}`;
+    return `Rp ${this.numberFormatter.format(value)}`;
   }
 
   get isBudgetConfigured(): boolean {
@@ -156,6 +170,8 @@ export class BudgetPlannerComponent implements OnDestroy {
       return;
     }
 
+    const caret = input.selectionStart ?? input.value.length;
+    const digitsBeforeCaret = input.value.slice(0, caret).replace(/\D/g, '').length;
     const digits = input.value.replace(/\D/g, '');
 
     if (digits.length === 0) {
@@ -167,9 +183,20 @@ export class BudgetPlannerComponent implements OnDestroy {
 
     const amount = Number(digits);
     control.setValue(amount, { emitEvent: false });
-    input.value = new Intl.NumberFormat('id-ID', {
-      maximumFractionDigits: 0,
-    }).format(amount);
+
+    const formatted = this.numberFormatter.format(amount);
+    let nextCaret = 0;
+    let seenDigits = 0;
+
+    while (nextCaret < formatted.length && seenDigits < digitsBeforeCaret) {
+      if (/\d/.test(formatted[nextCaret])) {
+        seenDigits += 1;
+      }
+      nextCaret += 1;
+    }
+
+    input.value = formatted;
+    input.setSelectionRange(nextCaret, nextCaret);
     this.runCrossItemValidation();
   }
 
@@ -185,8 +212,13 @@ export class BudgetPlannerComponent implements OnDestroy {
     this.confirmedExpenses = this.totalExpenses;
     this.isUpdatingSummary = true;
 
-    window.setTimeout(() => {
+    if (this.summaryTimer !== undefined) {
+      clearTimeout(this.summaryTimer);
+    }
+
+    this.summaryTimer = setTimeout(() => {
       this.isUpdatingSummary = false;
+      this.summaryTimer = undefined;
     }, 250);
   }
 
@@ -295,11 +327,13 @@ export class BudgetPlannerComponent implements OnDestroy {
   }
 
   getCategoryUsagePercent(category: CategoryGroup): number {
-    if (!this.isBudgetConfigured) {
+    const income = this.incomeControl.value;
+
+    if (income <= 0) {
       return 0;
     }
 
-    return Math.min((this.getCategoryTotal(category) / this.incomeControl.value) * 100, 100);
+    return Math.min((this.getCategoryTotal(category) / income) * 100, 100);
   }
 
   trackByCategory = (index: number, category: CategoryGroup): string => {
@@ -315,6 +349,12 @@ export class BudgetPlannerComponent implements OnDestroy {
   }
 
   resetBudget(): void {
+    if (this.summaryTimer !== undefined) {
+      clearTimeout(this.summaryTimer);
+      this.summaryTimer = undefined;
+    }
+
+    this.isUpdatingSummary = false;
     this.budgetForm.reset({ income: 0, categories: [] });
     this.categories.clear();
     this.crossItemMessages = [];
@@ -324,6 +364,10 @@ export class BudgetPlannerComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.formSubscription.unsubscribe();
+
+    if (this.summaryTimer !== undefined) {
+      clearTimeout(this.summaryTimer);
+    }
   }
 
   private createCategoryGroup(): CategoryGroup {
@@ -345,9 +389,10 @@ export class BudgetPlannerComponent implements OnDestroy {
     const categoryNames = new Set<string>();
 
     this.categories.controls.forEach((category) => {
-      const normalizedCategoryName = category.controls.name.value.trim().toLowerCase();
+      const categoryName = category.controls.name.value.trim();
+      const normalizedCategoryName = categoryName.toLowerCase();
       if (normalizedCategoryName && categoryNames.has(normalizedCategoryName)) {
-        messages.push(`Kategori "${category.controls.name.value}" tidak boleh duplikat.`);
+        messages.push(`Kategori "${categoryName}" tidak boleh duplikat.`);
         this.addGroupError(category, 'duplicateName');
       } else {
         this.removeGroupError(category, 'duplicateName');
@@ -363,10 +408,11 @@ export class BudgetPlannerComponent implements OnDestroy {
       }
 
       expenses.controls.forEach((expense) => {
-        const normalizedExpenseName = expense.controls.name.value.trim().toLowerCase();
+        const expenseName = expense.controls.name.value.trim();
+        const normalizedExpenseName = expenseName.toLowerCase();
         if (normalizedExpenseName && expenseNames.has(normalizedExpenseName)) {
           messages.push(
-            `Item "${expense.controls.name.value}" tidak boleh duplikat dalam kategori yang sama.`,
+            `Item "${expenseName}" tidak boleh duplikat dalam kategori yang sama.`,
           );
           this.addGroupError(expense, 'duplicateName');
         } else {

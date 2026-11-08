@@ -48,9 +48,18 @@ test.describe('BudgetKu', () => {
     await page.getByLabel('Nama pengeluaran').first().fill('Belanja');
     await page.getByLabel('Nominal').first().fill('150000');
 
-    await expect(page.getByText('Total pengeluaran tidak boleh melebihi pendapatan bulanan.')).toBeVisible();
+    const alert = page.getByRole('alert');
+    await expect(alert.getByText('Melebihi anggaran', { exact: true })).toBeVisible();
+    await expect(
+      alert.getByText('Total pengeluaran tidak boleh melebihi pendapatan bulanan.'),
+    ).toBeVisible();
+
+    const summary = page.getByRole('region', { name: 'Ringkasan anggaran' });
+    await expect(summary.getByText('Rp 100.000')).toBeHidden();
+
     await page.getByRole('button', { name: 'Perbarui ringkasan' }).click();
     await expect(page.getByRole('button', { name: 'Menghitung...' })).toBeHidden();
+    await expect(summary.getByText('Belum diatur')).toBeVisible();
   });
 
   test('updates the summary only after confirming the budget', async ({ page }) => {
@@ -85,6 +94,36 @@ test.describe('BudgetKu', () => {
     await expect(page.getByText('Nama kategori tidak boleh duplikat.')).toBeVisible();
     await page.getByRole('button', { name: 'Perbarui ringkasan' }).click();
     await expect(page.getByRole('button', { name: 'Menghitung...' })).toBeHidden();
+  });
+
+  test('rejects duplicate expense names within one category', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Tambah kategori pertama' }).click();
+    await page.getByLabel('Nama kategori').fill('Rumah');
+    await page.getByLabel('Nama pengeluaran').first().fill('Listrik');
+    await page.getByLabel('Nominal').first().fill('100000');
+    await page.getByRole('button', { name: 'Tambah item pengeluaran' }).click();
+    await page.getByLabel('Nama pengeluaran').nth(1).fill(' listrik ');
+
+    await expect(
+      page.getByText('Item "listrik" tidak boleh duplikat dalam kategori yang sama.'),
+    ).toBeVisible();
+  });
+
+  test('removes a category at a middle index without breaking the rest', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Tambah kategori pertama' }).click();
+    await page.getByLabel('Nama kategori').first().fill('Rumah');
+    await page.getByRole('button', { name: 'Tambah kategori' }).click();
+    await page.getByLabel('Nama kategori').nth(1).fill('Transportasi');
+    await page.getByRole('button', { name: 'Tambah kategori' }).click();
+    await page.getByLabel('Nama kategori').nth(2).fill('Makanan');
+
+    await page.getByRole('button', { name: 'Hapus kategori 2' }).click();
+
+    await expect(page.getByLabel('Nama kategori')).toHaveCount(2);
+    await expect(page.getByLabel('Nama kategori').nth(0)).toHaveValue('Rumah');
+    await expect(page.getByLabel('Nama kategori').nth(1)).toHaveValue('Makanan');
   });
 
   test('resets the budget and keeps the mobile form within the viewport after adding rows', async ({ page }) => {
@@ -171,11 +210,19 @@ test.describe('BudgetKu', () => {
     await page.getByRole('button', { name: 'Perbarui ringkasan' }).click();
 
     await expect(page.getByText('25% dari pendapatan terpakai')).toBeVisible();
+    await expect
+      .poll(() =>
+        page.locator('.progress-value').evaluate((element) => {
+          const track = element.parentElement;
+          return track ? (element.getBoundingClientRect().width / track.getBoundingClientRect().width) * 100 : 0;
+        }),
+      )
+      .toBeGreaterThan(0);
+
     const progressWidth = await page.locator('.progress-value').evaluate((element) => {
       const track = element.parentElement;
       return track ? (element.getBoundingClientRect().width / track.getBoundingClientRect().width) * 100 : 0;
     });
-    expect(progressWidth).toBeGreaterThan(0);
     expect(progressWidth).toBeLessThan(100);
 
     const closeButton = page.getByRole('button', { name: 'Tutup Transportasi' });

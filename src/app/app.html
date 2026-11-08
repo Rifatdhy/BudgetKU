@@ -1,17 +1,15 @@
-<main class="page-shell">
+<div class="page-shell">
   <header class="app-header">
     <div>
       <p class="eyebrow">ANGGARAN BULANAN</p>
       <h1>Budget<span>Ku</span></h1>
       <p class="hero-copy">Susun anggaran bulan ini, satu kebutuhan pada satu waktu.</p>
     </div>
-    <div class="header-note">
-      <span class="header-dot" aria-hidden="true"></span>
-      <span>Data tersimpan di halaman ini</span>
-    </div>
+    <p class="header-note">Data hanya bertahan selama halaman terbuka</p>
   </header>
 
-  <form class="budget-form" [formGroup]="budgetForm" (ngSubmit)="submitBudget()" novalidate>
+  <main class="budget-main">
+  <form class="budget-form" [formGroup]="budgetForm" (ngSubmit)="submitBudget()" novalidate [attr.aria-busy]="isUpdatingSummary">
     <div class="workspace">
       <div class="work-column">
         <section class="panel income-panel" aria-labelledby="income-title">
@@ -34,6 +32,7 @@
               formControlName="income"
               placeholder="0"
               [attr.aria-describedby]="showControlError(incomeControl) ? 'income-error' : null"
+              [attr.aria-invalid]="showControlError(incomeControl)"
               (focus)="selectInitialZero($event)"
               (input)="formatAmountInput($event, incomeControl)"
               (blur)="updateIncome()"
@@ -79,6 +78,7 @@
                       formControlName="name"
                       placeholder="Contoh: Kebutuhan Rumah"
                       [attr.aria-describedby]="showControlError(category.controls.name) || category.errors?.['duplicateName'] ? 'category-error-' + categoryIndex : null"
+                      [attr.aria-invalid]="showControlError(category.controls.name) || !!category.errors?.['duplicateName']"
                     />
                     <p class="field-error" [id]="'category-error-' + categoryIndex" *ngIf="showControlError(category.controls.name) || category.errors?.['duplicateName']">
                       <ng-container *ngIf="category.errors?.['duplicateName']; else requiredCategory">Nama kategori tidak boleh duplikat.</ng-container>
@@ -94,6 +94,7 @@
                     type="button"
                     (click)="toggleCategory(category)"
                     [attr.aria-expanded]="isCategoryExpanded(category)"
+                    [attr.aria-controls]="'category-details-' + categoryIndex"
                     [attr.aria-label]="(isCategoryExpanded(category) ? 'Tutup ' : 'Lihat detail ') + getCategoryName(category)"
                   >
                     {{ isCategoryExpanded(category) ? 'Tutup' : 'Lihat detail' }}
@@ -111,7 +112,7 @@
                 </div>
 
                 <div class="category-progress">
-                  <div class="category-progress-track" role="progressbar" aria-label="Pemakaian kategori" [attr.aria-valuenow]="getCategoryUsagePercent(category)" aria-valuemin="0" aria-valuemax="100">
+                  <div class="category-progress-track" role="progressbar" [attr.aria-label]="'Pemakaian kategori ' + getCategoryName(category)" [attr.aria-valuenow]="getCategoryUsagePercent(category)" aria-valuemin="0" aria-valuemax="100">
                     <div class="category-progress-value" [style.width.%]="getCategoryUsagePercent(category)"></div>
                   </div>
                   <span>{{ getCategoryUsagePercent(category) | number: '1.0-0' }}% dari pendapatan</span>
@@ -120,10 +121,10 @@
                 <ng-container *ngIf="isCategoryExpanded(category); else collapsedCategory">
                   <div class="subitems-header">
                     <span>Rincian pengeluaran</span>
-                    <span class="position-hint" *ngIf="first">Kategori pertama</span>
-                    <span class="position-hint" *ngIf="last">Kategori terakhir</span>
+                    <span class="position-hint" *ngIf="first || last">{{ first && last ? 'Satu-satunya kategori' : first ? 'Kategori pertama' : 'Kategori terakhir' }}</span>
                   </div>
 
+                  <div class="category-details" [id]="'category-details-' + categoryIndex">
                   <div class="expense-list" formArrayName="expenses">
                     <div
                       class="expense-row"
@@ -138,8 +139,10 @@
                           type="text"
                           formControlName="name"
                           [placeholder]="expenseFirst ? 'Contoh: Belanja mingguan' : 'Nama pengeluaran'"
+                          [attr.aria-describedby]="showControlError(expense.controls.name) ? 'expense-name-error-' + categoryIndex + '-' + expenseIndex : null"
+                          [attr.aria-invalid]="showControlError(expense.controls.name)"
                         />
-                        <small class="field-error" *ngIf="showControlError(expense.controls.name)">Nama item wajib diisi.</small>
+                        <small class="field-error" [id]="'expense-name-error-' + categoryIndex + '-' + expenseIndex" *ngIf="showControlError(expense.controls.name)">Nama item wajib diisi.</small>
                       </div>
                       <div class="amount-cell">
                         <label class="expense-label" [for]="'expense-amount-' + categoryIndex + '-' + expenseIndex">Nominal</label>
@@ -152,11 +155,13 @@
                             pattern="[0-9]*"
                             formControlName="amount"
                             placeholder="0"
+                            [attr.aria-describedby]="showControlError(expense.controls.amount) ? 'expense-amount-error-' + categoryIndex + '-' + expenseIndex : null"
+                            [attr.aria-invalid]="showControlError(expense.controls.amount)"
                             (focus)="selectInitialZero($event)"
                             (input)="formatAmountInput($event, expense.controls.amount)"
                           />
                         </div>
-                        <small class="field-error" *ngIf="showControlError(expense.controls.amount)">Nominal harus lebih besar dari Rp0.</small>
+                        <small class="field-error" [id]="'expense-amount-error-' + categoryIndex + '-' + expenseIndex" *ngIf="showControlError(expense.controls.amount)">Nominal harus lebih besar dari Rp0.</small>
                       </div>
                       <button
                         class="remove-row"
@@ -173,10 +178,11 @@
                   <button class="add-item-button" type="button" (click)="appendExpense(categoryIndex)">
                     <span aria-hidden="true">＋</span> Tambah item pengeluaran
                   </button>
+                  </div>
                 </ng-container>
 
                 <ng-template #collapsedCategory>
-                  <div class="collapsed-category">Rincian disembunyikan. Tekan Lihat detail untuk melihat item.</div>
+                  <div class="collapsed-category" [id]="'category-details-' + categoryIndex">Rincian disembunyikan. Tekan Lihat detail untuk melihat item.</div>
                 </ng-template>
               </article>
             </div>
@@ -200,11 +206,10 @@
         </div>
       </div>
 
-      <aside class="summary-column" aria-label="Ringkasan anggaran">
+      <aside class="summary-column">
         <section class="summary-panel" role="region" aria-label="Ringkasan anggaran">
           <div class="summary-heading">
             <p class="section-kicker">RINGKASAN</p>
-            <span class="summary-status-dot" aria-hidden="true"></span>
           </div>
           <p class="summary-intro">Kondisi anggaranmu saat ini</p>
           <div class="summary-balance" [class.negative]="remainingBudget < 0">
@@ -229,7 +234,7 @@
         </section>
 
         <section class="status-panel" [class.status-warning]="budgetStatus === 'Mendekati batas'" [class.status-danger]="isOverBudget" aria-live="polite">
-          <div class="status-icon" aria-hidden="true">{{ isOverBudget ? '!' : '✓' }}</div>
+          <div class="status-icon" [class.status-icon-neutral]="!isBudgetConfigured" aria-hidden="true">{{ statusIcon }}</div>
           <div>
             <p class="section-kicker">STATUS ANGGARAN</p>
             <h2>{{ budgetStatus }}</h2>
@@ -242,11 +247,12 @@
       </aside>
     </div>
 
-    <div class="validation-panel" *ngIf="validationMessages.length > 0" role="alert" aria-live="assertive">
-      <strong>Periksa kembali anggaranmu</strong>
+    <div class="validation-panel" *ngIf="validationMessages.length > 0" role="alert">
+      <strong>{{ isDraftOverBudget ? 'Melebihi anggaran' : 'Periksa kembali anggaranmu' }}</strong>
       <ul><li *ngFor="let message of validationMessages">{{ message }}</li></ul>
     </div>
   </form>
+  </main>
 
   <footer><span>BudgetKu</span><span>Anggaran sederhana untuk bulan ini</span></footer>
-</main>
+</div>

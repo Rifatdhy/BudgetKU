@@ -20,11 +20,11 @@
 
 ## Review Focus
 
-- Perubahan income setelah konfirmasi tidak mengubah summary sebelum submit — test E2E snapshot income.
-- Perubahan expense setelah konfirmasi tidak mengubah summary sebelum submit — test E2E snapshot expense.
-- Submit invalid tidak mengganti snapshot — test E2E duplicate/invalid submit.
-- Submit valid mengganti snapshot dan status — test E2E valid submit.
-- Reset mengembalikan snapshot awal — test E2E reset.
+- Perubahan income setelah konfirmasi tidak mengubah summary sebelum submit: test E2E snapshot income.
+- Perubahan expense setelah konfirmasi tidak mengubah summary sebelum submit: test E2E snapshot expense.
+- Submit invalid tidak mengganti snapshot: test E2E duplicate/invalid submit.
+- Submit valid mengganti snapshot dan status: test E2E valid submit.
+- Reset mengembalikan snapshot awal: test E2E reset.
 
 ---
 
